@@ -1,0 +1,15 @@
+node_modules/
+dist/
+release/
+release-build/
+release-build-*/
+release-demo/
+release-demo-*/
+*.exe
+data/*.db
+data/*.db-*
+*.log
+.DS_Store
+docs/extracted/
+docs/*.rar
+docs/*.zip
