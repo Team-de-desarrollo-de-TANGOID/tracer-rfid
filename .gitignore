@@ -13,4 +13,4 @@ data/*.db-*
 docs/extracted/
 docs/*.rar
 docs/*.zip
-hardware/
+

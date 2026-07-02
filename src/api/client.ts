@@ -37,6 +37,7 @@ import type {
   Permiso,
   Rol,
   Sku,
+  TipoPropiedad,
   Ubicacion,
   User,
   UsuarioListItem,
@@ -196,9 +197,12 @@ export const api = {
   getPropiedadesAlta: () => request<ColumnaTabla[]>('/api/activos/propiedades-alta'),
   createPropiedadActivo: (body: {
     etiqueta: string;
-    tipo?: string;
+    tipo?: TipoPropiedad;
     editable?: boolean;
     visibleDefault?: boolean;
+    obligatoriaAlta?: boolean;
+    listaOpciones?: string[];
+    listaMultiple?: boolean;
   }) =>
     request<ColumnaTabla>('/api/propiedades-activo', {
       method: 'POST',
@@ -212,7 +216,10 @@ export const api = {
       visibleDefault: boolean;
       orden: number;
       oculta: boolean;
-      tipo: string;
+      tipo: TipoPropiedad;
+      obligatoriaAlta: boolean;
+      listaOpciones: string[];
+      listaMultiple: boolean;
     }>
   ) =>
     request<ColumnaTabla>(`/api/propiedades-activo/${id}`, {

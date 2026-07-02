@@ -17,8 +17,18 @@ router.get('/', requirePermission('config.propiedades'), (_req, res) => {
 
 router.post('/', requirePermission('config.propiedades'), (req, res) => {
   try {
-    const { etiqueta, tipo, editable, visibleDefault } = req.body ?? {};
-    const created = createPropiedad({ etiqueta, tipo, editable, visibleDefault });
+    const { etiqueta, tipo, editable, visibleDefault, obligatoriaAlta, listaOpciones, listaMultiple } =
+      req.body ?? {};
+    const created = createPropiedad({
+      etiqueta,
+      tipo,
+      editable,
+      visibleDefault,
+      obligatoriaAlta,
+      listaOpciones,
+      listaMultiple,
+      creadoPorUsuarioId: req.user?.id ?? null,
+    });
     res.status(201).json(created);
   } catch (e) {
     res.status(400).json({ error: e.message });

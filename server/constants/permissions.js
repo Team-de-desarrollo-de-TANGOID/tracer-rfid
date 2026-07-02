@@ -23,7 +23,7 @@ export const PERMISSIONS = [
 
 /** Columnas disponibles para la tabla de inventario — predefinidas. */
 export const INVENTORY_COLUMNS = [
-  { codigo: 'epc', etiqueta: 'TID (RFID)', orden: 1, visible_default: 1, editable: 0 },
+  { codigo: 'tid', etiqueta: 'TID (RFID)', orden: 1, visible_default: 1, editable: 0 },
   { codigo: 'sku', etiqueta: 'SKU', orden: 2, visible_default: 1, editable: 0 },
   { codigo: 'estado', etiqueta: 'Estado', orden: 3, visible_default: 1, editable: 1 },
   { codigo: 'ubicacion', etiqueta: 'Ubicación', orden: 4, visible_default: 1, editable: 1 },

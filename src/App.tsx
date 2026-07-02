@@ -1,5 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import { api } from './api/client';
 import { useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
@@ -9,17 +18,85 @@ import AddAssetView from './components/AddAssetView';
 import AuditView from './components/AuditView';
 import SyncView from './components/SyncView';
 import ConfigView from './components/ConfigView';
-import UsersRolesView from './components/UsersRolesView';
 import DemoBanner from './components/DemoBanner';
-import type { Activo, Estado, InventarioColumnasConfig, Sku, SidebarTab, Ubicacion } from './types';
-import { PERMISSION_TAB_MAP } from './types';
+import type {
+  Activo,
+  ActivosSection,
+  ConfigSection,
+  Estado,
+  InventarioColumnasConfig,
+  Sku,
+  SidebarTab,
+  Ubicacion,
+} from './types';
+import { ACTIVOS_SECTIONS, CONFIG_SECTIONS, PERMISSION_TAB_MAP } from './types';
+import {
+  APP_PATHS,
+  getDefaultAppPath,
+  isConfigSection,
+  isPathAllowed,
+} from './routes/appRoutes';
+
+function AnimatedPage({ children }: { children: ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1 flex flex-col overflow-hidden"
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function ConfigPage({
+  estados,
+  skus,
+  ubicaciones,
+  onRefresh,
+  onRefreshColumnas,
+  permissions,
+}: {
+  estados: Estado[];
+  skus: Sku[];
+  ubicaciones: Ubicacion[];
+  onRefresh: () => void;
+  onRefreshColumnas: () => Promise<void>;
+  permissions: {
+    sku: boolean;
+    estados: boolean;
+    ubicaciones: boolean;
+    propiedades: boolean;
+    syncConfig: boolean;
+    syncMonitor: boolean;
+    manageUsers: boolean;
+    manageRoles: boolean;
+    viewUsers: boolean;
+  };
+}) {
+  const { configSection: param } = useParams<{ configSection: string }>();
+  const section: ConfigSection = isConfigSection(param) ? param : 'catalogos';
+
+  return (
+    <ConfigView
+      section={section}
+      estados={estados}
+      skus={skus}
+      ubicaciones={ubicaciones}
+      onRefresh={onRefresh}
+      onRefreshColumnas={onRefreshColumnas}
+      permissions={permissions}
+    />
+  );
+}
 
 export default function App() {
   const { user, loading: authLoading, login, logout, hasPermission } = useAuth();
-  const [tab, setTab] = useState<SidebarTab>('inventario');
-  const [configLectorSection, setConfigLectorSection] = useState<'conexion' | 'monitorear' | null>(
-    null
-  );
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activos, setActivos] = useState<Activo[]>([]);
   const [estados, setEstados] = useState<Estado[]>([]);
   const [skus, setSkus] = useState<Sku[]>([]);
@@ -28,8 +105,9 @@ export default function App() {
   const [stats, setStats] = useState({ total: 0, activas: 0, inactivas: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inventarioFocusActivoId, setInventarioFocusActivoId] = useState<number | null>(null);
   const [demoMode, setDemoMode] = useState(false);
+
+  const focusActivoId = Number.parseInt(searchParams.get('activo') ?? '', 10) || null;
 
   const canAccessTab = useCallback(
     (t: SidebarTab) => {
@@ -38,6 +116,38 @@ export default function App() {
     },
     [hasPermission]
   );
+
+  const canAccessConfigSection = useCallback(
+    (section: ConfigSection) => {
+      const def = CONFIG_SECTIONS.find((s) => s.id === section);
+      return def ? def.permissions.some((p) => hasPermission(p)) : false;
+    },
+    [hasPermission]
+  );
+
+  const canAccessActivosSection = useCallback(
+    (section: ActivosSection) => {
+      const def = ACTIVOS_SECTIONS.find((s) => s.id === section);
+      return def ? def.permissions.some((p) => hasPermission(p)) : false;
+    },
+    [hasPermission]
+  );
+
+  const defaultPath = useMemo(
+    () => getDefaultAppPath(canAccessTab, canAccessActivosSection, canAccessConfigSection),
+    [canAccessTab, canAccessActivosSection, canAccessConfigSection]
+  );
+
+  const goToInventario = useCallback(() => {
+    navigate(APP_PATHS.activosInventario);
+  }, [navigate]);
+
+  const clearInventarioFocus = useCallback(() => {
+    if (!searchParams.has('activo')) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('activo');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const refresh = useCallback(async () => {
     if (!user) return;
@@ -93,11 +203,44 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    if (!canAccessTab(tab)) {
-      const first = (Object.keys(PERMISSION_TAB_MAP) as SidebarTab[]).find(canAccessTab);
-      if (first) setTab(first);
+    if (location.pathname === '/') {
+      navigate(defaultPath, { replace: true });
+      return;
     }
-  }, [user, tab, canAccessTab]);
+    if (
+      !isPathAllowed(
+        location.pathname,
+        canAccessTab,
+        canAccessActivosSection,
+        canAccessConfigSection
+      )
+    ) {
+      navigate(defaultPath, { replace: true });
+    }
+  }, [
+    user,
+    location.pathname,
+    defaultPath,
+    navigate,
+    canAccessTab,
+    canAccessActivosSection,
+    canAccessConfigSection,
+  ]);
+
+  const configPermissions = useMemo(
+    () => ({
+      sku: hasPermission('config.sku'),
+      estados: hasPermission('config.estados'),
+      ubicaciones: hasPermission('config.ubicaciones'),
+      propiedades: hasPermission('config.propiedades'),
+      syncConfig: hasPermission('sync.ejecutar'),
+      syncMonitor: hasPermission('sync.ver_historial') || hasPermission('sync.ejecutar'),
+      manageUsers: hasPermission('usuarios.gestionar'),
+      manageRoles: hasPermission('roles.gestionar'),
+      viewUsers: hasPermission('usuarios.ver'),
+    }),
+    [hasPermission]
+  );
 
   if (authLoading) {
     return (
@@ -114,13 +257,13 @@ export default function App() {
   return (
     <div className="flex h-screen bg-slate-100 font-sans text-slate-800 overflow-hidden">
       <Sidebar
-        currentTab={tab}
-        setCurrentTab={setTab}
         totalCount={stats.total}
         activeCount={stats.activas}
         user={user}
         onLogout={logout}
         canAccessTab={canAccessTab}
+        canAccessActivosSection={canAccessActivosSection}
+        canAccessConfigSection={canAccessConfigSection}
         demoMode={demoMode}
         canCheckReader={
           hasPermission('sync.ver_historial') || hasPermission('sync.ejecutar')
@@ -140,130 +283,151 @@ export default function App() {
           </div>
         ) : (
           <AnimatePresence mode="wait">
-            <motion.div
-              key={tab}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              className="flex-1 flex flex-col overflow-hidden"
-            >
-              {tab === 'inventario' && canAccessTab('inventario') && (
-                <InventoryView
-                  activos={activos}
-                  estados={estados}
-                  ubicaciones={ubicaciones}
-                  columnasConfig={columnasConfig}
-                  focusActivoId={inventarioFocusActivoId}
-                  onFocusHandled={() => setInventarioFocusActivoId(null)}
-                  onRefresh={refresh}
-                  onUpdateEstado={async (id, estadoId, motivoBaja) => {
-                    await api.updateActivoEstado(id, estadoId, motivoBaja);
-                    await refresh();
-                  }}
-                  onBatchUpdateEstado={async (ids, estadoId, motivoBaja) => {
-                    await api.updateActivosEstadoLote(ids, estadoId, motivoBaja);
-                    await refresh();
-                  }}
-                  onBatchUpdateUbicacion={async (ids, ubicacionId) => {
-                    await api.updateActivosUbicacionLote(ids, ubicacionId);
-                    await refresh();
-                  }}
-                  onBatchDelete={async (ids) => {
-                    await api.deleteActivosLote(ids);
-                    await refresh();
-                  }}
-                  onUpdateActivo={async (id, body) => {
-                    await api.updateActivo(id, body);
-                    await refresh();
-                  }}
-                  onSaveColumnas={async (columnas) => {
-                    const cfg = await api.saveInventarioColumnas(columnas);
-                    setColumnasConfig(cfg);
-                  }}
-                  canEdit={hasPermission('activos.editar')}
-                  canChangeEstado={hasPermission('activos.cambiar_estado')}
-                  canDelete={hasPermission('activos.eliminar')}
-                  canConfigColumnas={hasPermission('inventario.columnas')}
-                  canVerHistorial={hasPermission('activos.ver_historial')}
-                  canQuickEdit={hasPermission('activos.edicion_rapida')}
-                />
-              )}
-              {tab === 'agregar' && canAccessTab('agregar') && (
-                <AddAssetView
-                  skus={skus}
-                  estados={estados}
-                  ubicaciones={ubicaciones}
-                  columnasConfig={columnasConfig}
-                  onCreated={refresh}
-                  setCurrentTab={setTab}
-                />
-              )}
-              {tab === 'auditoria' && canAccessTab('auditoria') && (
-                <AuditView
-                  activos={activos}
-                  columnasConfig={columnasConfig}
-                  onSaveColumnas={async (columnas) => {
-                    const cfg = await api.saveInventarioColumnas(columnas);
-                    setColumnasConfig(cfg);
-                  }}
-                  canConfigColumnas={hasPermission('inventario.columnas')}
-                  canGoToInventario={hasPermission('inventario.ver')}
-                  canGuardarAuditoria={hasPermission('auditoria.ejecutar')}
-                  canVerHistorial={
-                    hasPermission('auditoria.ver_historial') || hasPermission('auditoria.ejecutar')
-                  }
-                  onGoToRecord={(activo) => {
-                    setInventarioFocusActivoId(activo.id);
-                    setTab('inventario');
-                  }}
-                />
-              )}
-              {tab === 'sincronizar' && canAccessTab('sincronizar') && (
-                <SyncView
-                  onSynced={refresh}
-                  canSync={hasPermission('sync.ejecutar')}
-                  canViewAllowList={
-                    hasPermission('sync.ver_historial') || hasPermission('sync.ejecutar')
-                  }
-                  onOpenConfig={
-                    canAccessTab('configuracion')
-                      ? () => {
-                          setConfigLectorSection('conexion');
-                          setTab('configuracion');
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<Navigate to={defaultPath} replace />} />
+              <Route
+                path="/activos/inventario"
+                element={
+                  canAccessActivosSection('inventario') ? (
+                    <AnimatedPage>
+                      <InventoryView
+                        activos={activos}
+                        estados={estados}
+                        ubicaciones={ubicaciones}
+                        columnasConfig={columnasConfig}
+                        focusActivoId={focusActivoId}
+                        onFocusHandled={clearInventarioFocus}
+                        onRefresh={refresh}
+                        onUpdateEstado={async (id, estadoId, motivoBaja) => {
+                          await api.updateActivoEstado(id, estadoId, motivoBaja);
+                          await refresh();
+                        }}
+                        onBatchUpdateEstado={async (ids, estadoId, motivoBaja) => {
+                          await api.updateActivosEstadoLote(ids, estadoId, motivoBaja);
+                          await refresh();
+                        }}
+                        onBatchUpdateUbicacion={async (ids, ubicacionId) => {
+                          await api.updateActivosUbicacionLote(ids, ubicacionId);
+                          await refresh();
+                        }}
+                        onBatchDelete={async (ids) => {
+                          await api.deleteActivosLote(ids);
+                          await refresh();
+                        }}
+                        onUpdateActivo={async (id, body) => {
+                          await api.updateActivo(id, body);
+                          await refresh();
+                        }}
+                        onSaveColumnas={async (columnas) => {
+                          const cfg = await api.saveInventarioColumnas(columnas);
+                          setColumnasConfig(cfg);
+                        }}
+                        canEdit={hasPermission('activos.editar')}
+                        canChangeEstado={hasPermission('activos.cambiar_estado')}
+                        canDelete={hasPermission('activos.eliminar')}
+                        canConfigColumnas={hasPermission('inventario.columnas')}
+                        canVerHistorial={hasPermission('activos.ver_historial')}
+                        canQuickEdit={hasPermission('activos.edicion_rapida')}
+                      />
+                    </AnimatedPage>
+                  ) : (
+                    <Navigate to={defaultPath} replace />
+                  )
+                }
+              />
+              <Route
+                path="/activos/agregar"
+                element={
+                  canAccessActivosSection('agregar') ? (
+                    <AnimatedPage>
+                      <AddAssetView
+                        skus={skus}
+                        estados={estados}
+                        ubicaciones={ubicaciones}
+                        columnasConfig={columnasConfig}
+                        demoMode={demoMode}
+                        onCreated={refresh}
+                        onGoToInventario={goToInventario}
+                      />
+                    </AnimatedPage>
+                  ) : (
+                    <Navigate to={defaultPath} replace />
+                  )
+                }
+              />
+              <Route
+                path="/auditoria"
+                element={
+                  canAccessTab('auditoria') ? (
+                    <AnimatedPage>
+                      <AuditView
+                        activos={activos}
+                        columnasConfig={columnasConfig}
+                        onSaveColumnas={async (columnas) => {
+                          const cfg = await api.saveInventarioColumnas(columnas);
+                          setColumnasConfig(cfg);
+                        }}
+                        canConfigColumnas={hasPermission('inventario.columnas')}
+                        canGoToInventario={hasPermission('inventario.ver')}
+                        canGuardarAuditoria={hasPermission('auditoria.ejecutar')}
+                        canVerHistorial={
+                          hasPermission('auditoria.ver_historial') ||
+                          hasPermission('auditoria.ejecutar')
                         }
-                      : undefined
-                  }
-                />
-              )}
-              {tab === 'configuracion' && canAccessTab('configuracion') && (
-                <ConfigView
-                  estados={estados}
-                  skus={skus}
-                  ubicaciones={ubicaciones}
-                  onRefresh={refresh}
-                  onRefreshColumnas={refreshColumnas}
-                  initialLectorTab={configLectorSection}
-                  onLectorTabConsumed={() => setConfigLectorSection(null)}
-                  permissions={{
-                    sku: hasPermission('config.sku'),
-                    estados: hasPermission('config.estados'),
-                    ubicaciones: hasPermission('config.ubicaciones'),
-                    propiedades: hasPermission('config.propiedades'),
-                    syncConfig: hasPermission('sync.ejecutar'),
-                    syncMonitor:
-                      hasPermission('sync.ver_historial') || hasPermission('sync.ejecutar'),
-                  }}
-                />
-              )}
-              {tab === 'usuarios' && canAccessTab('usuarios') && (
-                <UsersRolesView
-                  canManageUsers={hasPermission('usuarios.gestionar')}
-                  canManageRoles={hasPermission('roles.gestionar')}
-                  canViewUsers={hasPermission('usuarios.ver')}
-                />
-              )}
-            </motion.div>
+                        onGoToRecord={(activo) => {
+                          navigate(`${APP_PATHS.activosInventario}?activo=${activo.id}`);
+                        }}
+                      />
+                    </AnimatedPage>
+                  ) : (
+                    <Navigate to={defaultPath} replace />
+                  )
+                }
+              />
+              <Route
+                path="/sincronizar"
+                element={
+                  canAccessTab('sincronizar') ? (
+                    <AnimatedPage>
+                      <SyncView
+                        onSynced={refresh}
+                        canSync={hasPermission('sync.ejecutar')}
+                        canViewAllowList={
+                          hasPermission('sync.ver_historial') || hasPermission('sync.ejecutar')
+                        }
+                        onOpenConfig={
+                          canAccessTab('configuracion')
+                            ? () => navigate(APP_PATHS.config('lector-puerta'))
+                            : undefined
+                        }
+                      />
+                    </AnimatedPage>
+                  ) : (
+                    <Navigate to={defaultPath} replace />
+                  )
+                }
+              />
+              <Route
+                path="/configuracion/:configSection"
+                element={
+                  canAccessTab('configuracion') ? (
+                    <AnimatedPage>
+                      <ConfigPage
+                        estados={estados}
+                        skus={skus}
+                        ubicaciones={ubicaciones}
+                        onRefresh={refresh}
+                        onRefreshColumnas={refreshColumnas}
+                        permissions={configPermissions}
+                      />
+                    </AnimatedPage>
+                  ) : (
+                    <Navigate to={defaultPath} replace />
+                  )
+                }
+              />
+              <Route path="*" element={<Navigate to={defaultPath} replace />} />
+            </Routes>
           </AnimatePresence>
         )}
       </main>

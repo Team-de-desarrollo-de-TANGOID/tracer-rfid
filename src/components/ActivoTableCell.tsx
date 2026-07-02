@@ -3,6 +3,8 @@ import type { Activo, ColumnaTabla, Estado, Ubicacion } from '../types';
 import type { AwaitingMotivoBaja, EditingField } from '../hooks/useActivoInlineEdit';
 import { activoPermiteEditarMotivoBaja } from '../utils/activoEdit';
 import { getActivoPropiedadValor } from '../utils/activoProps';
+import { isTidCodigo } from '../constants/columnaCodigos';
+import { formatListaValorDisplay } from '../utils/propiedadLista';
 
 interface Props {
   item: Activo;
@@ -50,8 +52,7 @@ export default function ActivoTableCell({
     awaitingMotivo?.activoId === item.id &&
     isQuickEditRow;
 
-  switch (col.codigo) {
-    case 'epc': {
+  if (isTidCodigo(col.codigo)) {
       const tid = item.tid ?? item.epc ?? '';
       return (
         <div className="flex items-center gap-2">
@@ -76,7 +77,9 @@ export default function ActivoTableCell({
           </button>
         </div>
       );
-    }
+  }
+
+  switch (col.codigo) {
     case 'sku':
       return <span className="text-[13px] text-[#64748b]">{item.sku}</span>;
     case 'estado':
@@ -246,6 +249,8 @@ export default function ActivoTableCell({
         return <span className="text-[13px] text-slate-400">—</span>;
       }
       const valor = getActivoPropiedadValor(item, col);
+      const displayValor =
+        col.tipo === 'lista' ? formatListaValorDisplay(valor, col) || '—' : valor || '—';
       const inputType = col.tipo === 'numero' ? 'number' : col.tipo === 'fecha' ? 'date' : 'text';
       if (isEditingThis) {
         return (
@@ -266,7 +271,7 @@ export default function ActivoTableCell({
           onClick={() => canEditCol && onStartFieldEdit(col.codigo, valor)}
           title={canEditCol ? 'Clic para editar' : undefined}
         >
-          {valor || '—'}
+          {displayValor}
         </span>
       );
     }

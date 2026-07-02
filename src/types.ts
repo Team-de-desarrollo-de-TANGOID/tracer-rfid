@@ -51,7 +51,7 @@ export interface Activo {
   propiedadesExtra?: Record<string, string>;
 }
 
-export type TipoPropiedad = 'texto' | 'numero' | 'fecha';
+export type TipoPropiedad = 'texto' | 'numero' | 'fecha' | 'lista';
 
 export interface ColumnaTabla {
   id: number;
@@ -66,6 +66,11 @@ export interface ColumnaTabla {
   campoActivo?: string | null;
   esCustom?: boolean;
   enUso?: boolean;
+  vecesUtilizada?: number;
+  creadoPor?: string;
+  obligatoriaAlta?: boolean;
+  listaOpciones?: string[];
+  listaMultiple?: boolean;
 }
 
 export interface InventarioColumnasConfig {
@@ -129,12 +134,53 @@ export interface EventoActivo {
 }
 
 export type SidebarTab =
-  | 'inventario'
-  | 'agregar'
+  | 'activos'
   | 'auditoria'
   | 'sincronizar'
-  | 'configuracion'
-  | 'usuarios';
+  | 'configuracion';
+
+export type ActivosSection = 'inventario' | 'agregar';
+
+export const ACTIVOS_SECTIONS: {
+  id: ActivosSection;
+  label: string;
+  permissions: string[];
+}[] = [
+  {
+    id: 'inventario',
+    label: 'Inventario',
+    permissions: ['inventario.ver'],
+  },
+  {
+    id: 'agregar',
+    label: 'Agregar activos',
+    permissions: ['activos.crear'],
+  },
+];
+
+export type ConfigSection = 'catalogos' | 'lector-puerta' | 'usuarios-roles';
+
+export const CONFIG_SECTIONS: {
+  id: ConfigSection;
+  label: string;
+  permissions: string[];
+}[] = [
+  {
+    id: 'catalogos',
+    label: 'Propiedades de activos',
+    permissions: ['config.sku', 'config.estados', 'config.ubicaciones', 'config.propiedades'],
+  },
+  {
+    id: 'lector-puerta',
+    label: 'Lector de puerta',
+    permissions: ['sync.ejecutar', 'sync.ver_historial'],
+  },
+  {
+    id: 'usuarios-roles',
+    label: 'Usuarios y roles',
+    permissions: ['usuarios.ver', 'usuarios.gestionar', 'roles.gestionar'],
+  },
+];
 
 export interface FxMonitorSnapshot {
   demo?: boolean;
@@ -215,8 +261,7 @@ export interface AuditoriaCompleta extends AuditoriaResumen {
 }
 
 export const PERMISSION_TAB_MAP: Record<SidebarTab, string[]> = {
-  inventario: ['inventario.ver'],
-  agregar: ['activos.crear'],
+  activos: ['inventario.ver', 'activos.crear'],
   auditoria: ['auditoria.ejecutar', 'auditoria.ver_historial'],
   sincronizar: ['sync.ejecutar', 'sync.ver_historial'],
   configuracion: [
@@ -227,6 +272,8 @@ export const PERMISSION_TAB_MAP: Record<SidebarTab, string[]> = {
     'inventario.columnas',
     'sync.ejecutar',
     'sync.ver_historial',
+    'usuarios.ver',
+    'usuarios.gestionar',
+    'roles.gestionar',
   ],
-  usuarios: ['usuarios.ver', 'usuarios.gestionar', 'roles.gestionar'],
 };

@@ -1,9 +1,10 @@
 import type { Activo, ColumnaTabla } from '../types';
 import { getActivoPropiedadValor } from './activoProps';
+import { TID_CODIGO } from '../constants/columnaCodigos';
 
 /** Campos de sistema disponibles como filtros fijos. */
 export const SYSTEM_FILTER_CODIGOS = [
-  'epc',
+  TID_CODIGO,
   'estado',
   'ubicacion',
   'fecha_registro',

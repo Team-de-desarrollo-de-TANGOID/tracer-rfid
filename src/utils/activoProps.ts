@@ -1,11 +1,13 @@
 import type { Activo, ColumnaTabla } from '../types';
+import { isTidCodigo } from '../constants/columnaCodigos';
 
 /** Valor de una propiedad/columna del activo (sistema, mapeada o custom). */
 export function getActivoPropiedadValor(item: Activo, col: ColumnaTabla | string): string {
   const codigo = typeof col === 'string' ? col : col.codigo;
+  if (isTidCodigo(codigo)) {
+    return item.tid ?? item.epc ?? '';
+  }
   switch (codigo) {
-    case 'epc':
-      return item.tid ?? item.epc ?? '';
     case 'sku':
       return item.sku ?? '';
     case 'estado':

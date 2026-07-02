@@ -22,6 +22,7 @@ import SortableColumnHeader, { useColumnSortState } from './SortableColumnHeader
 import { findColumna, sortAuditRows } from '../utils/tableSort';
 import { DEFAULT_INVENTORY_COLUMNS, toggleColumnVisibility, clampVisibleColumns } from '../constants/inventoryColumns';
 import type { Activo, AuditoriaResumen, ColumnaTabla, InventarioColumnasConfig } from '../types';
+import { isTidCodigo } from '../constants/columnaCodigos';
 
 interface AuditRow {
   tid: string;
@@ -213,7 +214,7 @@ export default function AuditView({
         />
       );
     }
-    if (col.codigo === 'epc') {
+    if (isTidCodigo(col.codigo)) {
       return (
         <TidOnlyCell tid={row.tid} onCopy={handleCopyTid} copied={copiedTid === row.tid} />
       );

@@ -7,9 +7,15 @@ interface Props {
   canManageUsers: boolean;
   canManageRoles: boolean;
   canViewUsers: boolean;
+  embedded?: boolean;
 }
 
-export default function UsersRolesView({ canManageUsers, canManageRoles, canViewUsers }: Props) {
+export default function UsersRolesView({
+  canManageUsers,
+  canManageRoles,
+  canViewUsers,
+  embedded = false,
+}: Props) {
   const [tab, setTab] = useState<'usuarios' | 'roles'>('usuarios');
   const [usuarios, setUsuarios] = useState<UsuarioListItem[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
@@ -88,21 +94,27 @@ export default function UsersRolesView({ canManageUsers, canManageRoles, canView
   }, {});
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#f8fafc]">
-      <header className="px-8 py-6 bg-white border-b border-[#e2e8f0]">
-        <h1 className="text-2xl font-bold text-[#0f172a] m-0">Usuarios y roles</h1>
-        <p className="text-[13px] text-[#64748b] mt-1 m-0">
-          Gestione quién accede al sistema y qué puede hacer cada rol.
-        </p>
-      </header>
+    <div className={`flex flex-col h-full overflow-hidden ${embedded ? '' : 'bg-[#f8fafc]'}`}>
+      {!embedded && (
+        <header className="px-8 py-6 bg-white border-b border-[#e2e8f0]">
+          <h1 className="text-2xl font-bold text-[#0f172a] m-0">Usuarios y roles</h1>
+          <p className="text-[13px] text-[#64748b] mt-1 m-0">
+            Gestione quién accede al sistema y qué puede hacer cada rol.
+          </p>
+        </header>
+      )}
 
       {msg && (
-        <div className="mx-8 mt-4 px-4 py-2 bg-blue-50 text-blue-800 text-sm rounded-lg border border-blue-200">
+        <div
+          className={`px-4 py-2 bg-blue-50 text-blue-800 text-sm rounded-lg border border-blue-200 ${
+            embedded ? 'mx-8 mt-4 shrink-0' : 'mx-8 mt-4'
+          }`}
+        >
           {msg}
         </div>
       )}
 
-      <div className="px-8 pt-4 flex gap-2">
+      <div className={`flex gap-2 shrink-0 ${embedded ? 'px-8 pt-6' : 'px-8 pt-4'}`}>
         {(canViewUsers || canManageUsers) && (
           <TabBtn active={tab === 'usuarios'} onClick={() => setTab('usuarios')}>
             <UserPlus size={14} /> Usuarios

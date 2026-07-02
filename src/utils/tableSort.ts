@@ -1,5 +1,6 @@
 import type { Activo, ColumnaTabla } from '../types';
 import { getActivoPropiedadValor } from './activoProps';
+import { isTidCodigo } from '../constants/columnaCodigos';
 
 export type SortDir = 'asc' | 'desc';
 
@@ -34,7 +35,7 @@ export function getAuditRowSortValue(
   col: ColumnaTabla
 ): string {
   if (row.activo) return getActivoPropiedadValor(row.activo, col);
-  if (col.codigo === 'epc') return row.tid;
+  if (isTidCodigo(col.codigo)) return row.tid;
   return '';
 }
 

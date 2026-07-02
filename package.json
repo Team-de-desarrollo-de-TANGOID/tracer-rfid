@@ -5,8 +5,11 @@
   "private": true,
   "main": "electron/main.cjs",
   "type": "module",
+  "engines": {
+    "node": ">=20 <26"
+  },
   "scripts": {
-    "ports:free": "kill-port 3847 5173",
+    "ports:free": "node scripts/free-ports.mjs 3847 5173",
     "predev": "npm run ports:free",
     "predev:web": "npm run ports:free",
     "dev": "concurrently -k -n api,vite,electron -c blue,green,magenta \"npm run server\" \"npm run vite\" \"npm run electron:wait\"",
@@ -76,7 +79,8 @@
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
-    "react-dom": "^19.0.1"
+    "react-dom": "^19.0.1",
+    "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.14",

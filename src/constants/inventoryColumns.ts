@@ -1,4 +1,4 @@
-import type { ColumnaTabla } from '../types';
+import { TID_CODIGO } from './columnaCodigos';
 
 /** Máximo de columnas visibles simultáneas en tablas de inventario/auditoría. */
 export const MAX_VISIBLE_TABLE_COLUMNS = 7;
@@ -19,7 +19,7 @@ export function clampVisibleColumns(
 }
 
 export const DEFAULT_INVENTORY_COLUMNS: ColumnaTabla[] = [
-  { id: 1, codigo: 'epc', etiqueta: 'TID (RFID)', orden: 1, visibleDefault: true, editable: false },
+  { id: 1, codigo: TID_CODIGO, etiqueta: 'TID (RFID)', orden: 1, visibleDefault: true, editable: false },
   { id: 2, codigo: 'sku', etiqueta: 'SKU', orden: 2, visibleDefault: true, editable: false },
   { id: 3, codigo: 'estado', etiqueta: 'Estado', orden: 3, visibleDefault: true, editable: true },
   { id: 4, codigo: 'fecha_registro', etiqueta: 'Fecha registro', orden: 7, visibleDefault: true, editable: false },

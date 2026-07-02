@@ -38,7 +38,13 @@ function formatApiState(reader: FxMonitorSnapshot['reader']) {
   return msg?.message ?? 'API OK';
 }
 
-export default function MonitorView({ embedded = false }: { embedded?: boolean }) {
+export default function MonitorView({
+  embedded = false,
+  compact = false,
+}: {
+  embedded?: boolean;
+  compact?: boolean;
+}) {
   const [lines, setLines] = useState<LogLine[]>([]);
   const [snapshot, setSnapshot] = useState<FxMonitorSnapshot | null>(null);
   const [streamActive, setStreamActive] = useState(false);
@@ -105,9 +111,9 @@ export default function MonitorView({ embedded = false }: { embedded?: boolean }
     if (statusKey !== lastStatusKey.current) {
       lastStatusKey.current = statusKey;
       const statusParts = [
-        snap.reader?.ok ? 'User App API OK' : `API ${snap.reader?.error ?? proc?.error ?? '—'}`,
+        snap.reader?.ok ? 'Lector conectado' : `Lector: ${snap.reader?.error ?? proc?.error ?? '—'}`,
         proc?.running ? `PID ${proc.pid ?? '?'}` : 'app detenida',
-        allow ? `lista v${allow.version} (${allow.count} TID)` : null,
+        allow ? `lista v${allow.version} (${allow.count} etiquetas)` : null,
       ].filter(Boolean);
       const statusText = `[${new Date(snap.ts).toLocaleTimeString('es-AR')}] ${statusParts.join(' · ')}`;
       setLines((prev) => [
@@ -214,25 +220,27 @@ export default function MonitorView({ embedded = false }: { embedded?: boolean }
   );
 
   return (
-    <div className={`flex flex-col h-full min-h-0 gap-4 ${embedded ? 'p-6' : 'p-6'}`}>
+    <div
+      className={`flex flex-col h-full min-h-0 ${compact ? 'gap-3 p-4' : 'gap-4 p-6'}`}
+    >
       {!embedded ? (
         <header className="flex flex-wrap items-start justify-between gap-4 shrink-0">
           <div>
             <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
               <Radio className="w-5 h-5 text-sky-600" />
-              Monitor FX9600
+              Monitor del lector
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Log en vivo del lector: cada lectura RFID con hora y si estaba en la lista
+              Log en vivo: cada lectura de etiqueta con hora y si estaba autorizada
               {snapshot?.config?.ip ? ` · ${snapshot.config.ip}` : ''}
             </p>
           </div>
           {toolbar}
         </header>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <p className="text-sm text-slate-500 m-0">
-            Log en vivo del lector (lecturas y allow-list)
+        <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <p className={`text-slate-600 m-0 font-medium ${compact ? 'text-xs' : 'text-sm'}`}>
+            Monitor en tiempo real
             {snapshot?.config?.ip ? ` · ${snapshot.config.ip}` : ''}
           </p>
           {toolbar}
@@ -240,8 +248,8 @@ export default function MonitorView({ embedded = false }: { embedded?: boolean }
       )}
 
       <div className="flex flex-wrap gap-2 shrink-0">
-        {badge(apiOk, 'User App API', 'User App API')}
-        {badge(snapshot?.process?.running, 'App activa', 'App detenida')}
+        {badge(apiOk, 'Lector', 'Lector')}
+        {badge(snapshot?.process?.running, 'Leyendo', 'Detenido')}
         <span
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
             receiving ? 'bg-sky-100 text-sky-800' : paused ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
@@ -258,7 +266,7 @@ export default function MonitorView({ embedded = false }: { embedded?: boolean }
         </span>
         {snapshot?.allowList != null && (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-violet-100 text-violet-800">
-            {snapshot.allowList.count} TID · v{snapshot.allowList.version}
+            {snapshot.allowList.count} etiquetas · v{snapshot.allowList.version}
           </span>
         )}
       </div>

@@ -9,6 +9,11 @@ import { up as migration005 } from './migrations/005_propiedades_activos.js';
 import { up as migration006 } from './migrations/006_auditoria_historial.js';
 import { up as migration007 } from './migrations/007_fx9600_config.js';
 import { up as migration008 } from './migrations/008_user_app_api.js';
+import { up as migration009 } from './migrations/009_obligatoria_alta.js';
+import { up as migration010 } from './migrations/010_lista_propiedades.js';
+import { up as migration011 } from './migrations/011_tid_codigo.js';
+import { up as migration012 } from './migrations/012_motivo_baja_sistema.js';
+import { up as migration013 } from './migrations/013_propiedad_creado_por.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -30,6 +35,11 @@ export function runMigrations(db) {
     { name: '006_auditoria_historial', up: migration006 },
     { name: '007_fx9600_config', up: migration007 },
     { name: '008_user_app_api', up: migration008 },
+    { name: '009_obligatoria_alta', up: migration009 },
+    { name: '010_lista_propiedades', up: migration010 },
+    { name: '011_tid_codigo', up: migration011 },
+    { name: '012_motivo_baja_sistema', up: migration012 },
+    { name: '013_propiedad_creado_por', up: migration013 },
   ];
 
   for (const m of migrations) {

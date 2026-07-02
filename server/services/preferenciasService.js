@@ -1,5 +1,6 @@
 import { getDb } from '../db.js';
 import { listPropiedades } from './propiedadesService.js';
+import { normalizeColumnaCodigo } from '../constants/columnaCodigos.js';
 import {
   MAX_VISIBLE_TABLE_COLUMNS,
   clampVisibleColumns,
@@ -21,7 +22,7 @@ export function getPreferenciasInventario(usuarioId) {
 
   if (!row) {
     return clampVisibleColumns(
-      catalogo.filter((c) => c.visibleDefault).map((c) => c.codigo)
+      catalogo.filter((c) => c.esSistema).map((c) => c.codigo)
     );
   }
 
@@ -29,13 +30,14 @@ export function getPreferenciasInventario(usuarioId) {
     const saved = JSON.parse(row.valor);
     if (Array.isArray(saved) && saved.length > 0) {
       const visibleSet = new Set(catalogo.map((c) => c.codigo));
-      return clampVisibleColumns(saved.filter((c) => visibleSet.has(c)));
+      const normalized = saved.map((c) => normalizeColumnaCodigo(String(c)));
+      return clampVisibleColumns(normalized.filter((c) => visibleSet.has(c)));
     }
   } catch {
     /* fallback */
   }
 
-  return clampVisibleColumns(catalogo.filter((c) => c.visibleDefault).map((c) => c.codigo));
+  return clampVisibleColumns(catalogo.filter((c) => c.esSistema).map((c) => c.codigo));
 }
 
 export function savePreferenciasInventario(usuarioId, columnas) {

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Trash2, Package, Tags, MapPin, Pencil } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Trash2, Package, Tags, MapPin, Pencil, ListTree, ChevronRight } from 'lucide-react';
 import { api } from '../api/client';
 import CollapsibleAddForm from './CollapsibleAddForm';
 import PropiedadesActivosSection from './PropiedadesActivosSection';
@@ -12,6 +12,8 @@ import {
   tipoOperativoFromEstado,
 } from '../utils/estadoOperativo';
 
+type CatalogSection = 'sku' | 'estados' | 'ubicaciones' | 'propiedades';
+
 interface Props {
   estados: Estado[];
   skus: Sku[];
@@ -20,6 +22,74 @@ interface Props {
   onRefreshColumnas: () => Promise<void>;
   permissions: { sku: boolean; estados: boolean; ubicaciones: boolean; propiedades: boolean };
   onFlash: (text: string) => void;
+}
+
+const SECTION_META: Record<
+  CatalogSection,
+  { label: string; description: string; icon: typeof Package }
+> = {
+  sku: {
+    label: 'SKUs',
+    description: 'Códigos de producto para clasificar los activos del inventario.',
+    icon: Package,
+  },
+  estados: {
+    label: 'Estados',
+    description: 'Estados operativos de los activos (activo, baja, en reparación, etc.).',
+    icon: Tags,
+  },
+  ubicaciones: {
+    label: 'Ubicaciones',
+    description: 'Lugares físicos donde pueden encontrarse los activos.',
+    icon: MapPin,
+  },
+  propiedades: {
+    label: 'Propiedades',
+    description: 'Campos personalizados visibles en el inventario y altas.',
+    icon: ListTree,
+  },
+};
+
+function MenuButton({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: typeof Package;
+  label: string;
+  count?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors cursor-pointer ${
+        active
+          ? 'bg-blue-600 text-white shadow-sm'
+          : 'text-slate-700 hover:bg-slate-100'
+      }`}
+    >
+      <Icon size={16} className="flex-shrink-0" />
+      <span className="flex-1 text-sm font-medium truncate">{label}</span>
+      {count != null && (
+        <span
+          className={`text-xs font-mono px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+            active ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'
+          }`}
+        >
+          {count}
+        </span>
+      )}
+      <ChevronRight
+        size={14}
+        className={`flex-shrink-0 ${active ? 'text-blue-200' : 'text-slate-400'}`}
+      />
+    </button>
+  );
 }
 
 export default function ConfigActivosTab({
@@ -31,6 +101,7 @@ export default function ConfigActivosTab({
   permissions,
   onFlash,
 }: Props) {
+  const [activeSection, setActiveSection] = useState<CatalogSection | null>(null);
   const [newSku, setNewSku] = useState('');
   const [newSkuDesc, setNewSkuDesc] = useState('');
   const [newEstado, setNewEstado] = useState('');
@@ -38,6 +109,17 @@ export default function ConfigActivosTab({
   const [newUbicacionDesc, setNewUbicacionDesc] = useState('');
   const [editingEstado, setEditingEstado] = useState<Estado | null>(null);
   const [editingUbicacion, setEditingUbicacion] = useState<Ubicacion | null>(null);
+
+  const menuItems = useMemo(() => {
+    const items: { id: CatalogSection; count?: number }[] = [];
+    if (permissions.sku) items.push({ id: 'sku', count: skus.length });
+    if (permissions.estados) items.push({ id: 'estados', count: estados.length });
+    if (permissions.ubicaciones) items.push({ id: 'ubicaciones', count: ubicaciones.length });
+    if (permissions.propiedades) items.push({ id: 'propiedades' });
+    return items;
+  }, [permissions, skus.length, estados.length, ubicaciones.length]);
+
+  const activeMeta = activeSection ? SECTION_META[activeSection] : null;
 
   const addSku = async (close: () => void) => {
     if (!newSku.trim()) return;
@@ -137,224 +219,263 @@ export default function ConfigActivosTab({
     }
   };
 
-  const hasAny =
-    permissions.sku ||
-    permissions.estados ||
-    permissions.ubicaciones ||
-    permissions.propiedades;
-
-  if (!hasAny) {
+  if (menuItems.length === 0) {
     return (
-      <p className="text-sm text-slate-500">No tiene permisos para configurar catálogos de activos.</p>
+      <p className="text-sm text-slate-500">No tiene permisos para configurar propiedades de activos.</p>
     );
   }
 
   return (
     <>
-      <div className="grid md:grid-cols-2 gap-8">
-        {permissions.sku && (
-          <section className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 font-bold text-[#0f172a] mb-4">
-              <Package size={18} />
-              Catálogo SKU
-            </div>
-            <ul className="space-y-2 mb-4 max-h-48 overflow-y-auto">
-              {skus.map((s) => (
-                <li key={s.id} className="text-sm flex justify-between border-b border-slate-50 pb-1">
-                  <span className="font-mono font-semibold text-slate-800">{s.codigo}</span>
-                  <span className="text-slate-500 text-xs">{s.descripcion}</span>
-                </li>
-              ))}
-            </ul>
-            <CollapsibleAddForm>
-              {(close) => (
-                <>
-                  <div className="flex gap-2 flex-wrap">
-                    <input
-                      placeholder="Código SKU"
-                      value={newSku}
-                      onChange={(e) => setNewSku(e.target.value)}
-                      className="flex-1 min-w-[120px] py-2 px-3 border rounded-lg text-sm bg-white"
-                    />
-                    <input
-                      placeholder="Descripción"
-                      value={newSkuDesc}
-                      onChange={(e) => setNewSkuDesc(e.target.value)}
-                      className="flex-1 min-w-[120px] py-2 px-3 border rounded-lg text-sm bg-white"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => addSku(close)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold cursor-pointer"
-                  >
-                    Guardar SKU
-                  </button>
-                </>
-              )}
-            </CollapsibleAddForm>
-          </section>
-        )}
+      <div className="h-full min-h-0 flex flex-col lg:flex-row gap-6">
+        {/* Menú de opciones */}
+        <nav className="lg:w-56 shrink-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 m-0 mb-3 px-1">
+            Elegí qué administrar
+          </p>
+          <div className="bg-white border border-slate-200 rounded-xl p-2 shadow-sm space-y-0.5">
+            {menuItems.map(({ id, count }) => {
+              const meta = SECTION_META[id];
+              return (
+                <MenuButton
+                  key={id}
+                  active={activeSection === id}
+                  onClick={() => setActiveSection(id)}
+                  icon={meta.icon}
+                  label={meta.label}
+                  count={count}
+                />
+              );
+            })}
+          </div>
+        </nav>
 
-        {permissions.estados && (
-          <section className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 font-bold text-[#0f172a] mb-4">
-              <Tags size={18} />
-              Estados de activos
+        {/* Panel de la sección activa */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {!activeSection ? (
+            <div className="h-full min-h-[280px] flex flex-col items-center justify-center text-center border border-dashed border-slate-200 rounded-xl bg-white/60 px-8">
+              <Package size={32} className="text-slate-300 mb-3" />
+              <p className="text-sm font-medium text-slate-600 m-0">Seleccioná una opción</p>
+              <p className="text-xs text-slate-400 m-0 mt-1 max-w-xs">
+                Elegí del menú qué querés administrar: SKUs, estados, ubicaciones o campos personalizados.
+              </p>
             </div>
-            <ul className="space-y-2 mb-4">
-              {estados.map((e) => (
-                <li
-                  key={e.id}
-                  className="flex items-center justify-between text-sm border-b border-slate-50 pb-2"
-                >
-                  <div>
-                    <span
-                      className="px-2 py-0.5 rounded-full text-xs font-bold"
-                      style={{ backgroundColor: `${e.color}22`, color: e.color }}
+          ) : activeSection === 'sku' ? (
+            <section className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-sm">
+              <div className="mb-5">
+                <h2 className="text-base font-bold text-slate-900 m-0 flex items-center gap-2">
+                  <Package size={18} className="text-blue-600" />
+                  {activeMeta?.label}
+                </h2>
+                <p className="text-sm text-slate-500 m-0 mt-1">{activeMeta?.description}</p>
+              </div>
+              <ul className="space-y-2 mb-4 max-h-[min(420px,50vh)] overflow-y-auto">
+                {skus.length === 0 ? (
+                  <li className="text-sm text-slate-400 py-4 text-center">No hay SKUs cargados.</li>
+                ) : (
+                  skus.map((s) => (
+                    <li
+                      key={s.id}
+                      className="text-sm flex justify-between gap-4 border-b border-slate-50 pb-2"
                     >
-                      {e.nombre}
-                    </span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                        estadoEstaHabilitado(e)
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-slate-100 text-slate-500'
-                      }`}
-                    >
-                      {labelTipoOperativo(tipoOperativoFromEstado(e))}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {(e.permite_salida ?? e.permiteSalida) ? ' · permite salida' : ''}
-                    </span>
-                  </div>
-                  <div className="flex gap-1">
+                      <span className="font-mono font-semibold text-slate-800">{s.codigo}</span>
+                      <span className="text-slate-500 text-xs text-right">{s.descripcion}</span>
+                    </li>
+                  ))
+                )}
+              </ul>
+              <CollapsibleAddForm label="Agregar SKU">
+                {(close) => (
+                  <>
+                    <div className="flex gap-2 flex-wrap">
+                      <input
+                        placeholder="Código SKU"
+                        value={newSku}
+                        onChange={(e) => setNewSku(e.target.value)}
+                        className="flex-1 min-w-[120px] py-2 px-3 border rounded-lg text-sm bg-white"
+                      />
+                      <input
+                        placeholder="Descripción"
+                        value={newSkuDesc}
+                        onChange={(e) => setNewSkuDesc(e.target.value)}
+                        className="flex-1 min-w-[120px] py-2 px-3 border rounded-lg text-sm bg-white"
+                      />
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setEditingEstado({ ...e })}
-                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                      onClick={() => addSku(close)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold cursor-pointer"
                     >
-                      <Pencil size={14} />
+                      Guardar SKU
                     </button>
-                    {!(e.es_sistema ?? e.esSistema) && (
+                  </>
+                )}
+              </CollapsibleAddForm>
+            </section>
+          ) : activeSection === 'estados' ? (
+            <section className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-sm">
+              <div className="mb-5">
+                <h2 className="text-base font-bold text-slate-900 m-0 flex items-center gap-2">
+                  <Tags size={18} className="text-blue-600" />
+                  {activeMeta?.label}
+                </h2>
+                <p className="text-sm text-slate-500 m-0 mt-1">{activeMeta?.description}</p>
+              </div>
+              <ul className="space-y-2 mb-4 max-h-[min(420px,50vh)] overflow-y-auto">
+                {estados.map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex items-center justify-between text-sm border-b border-slate-50 pb-2"
+                  >
+                    <div>
+                      <span
+                        className="px-2 py-0.5 rounded-full text-xs font-bold"
+                        style={{ backgroundColor: `${e.color}22`, color: e.color }}
+                      >
+                        {e.nombre}
+                      </span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          estadoEstaHabilitado(e)
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {labelTipoOperativo(tipoOperativoFromEstado(e))}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {(e.permite_salida ?? e.permiteSalida) ? ' · permite salida' : ''}
+                      </span>
+                    </div>
+                    <div className="flex gap-1">
                       <button
                         type="button"
-                        onClick={() => removeEstado(e.id)}
+                        onClick={() => setEditingEstado({ ...e })}
+                        className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      {!(e.es_sistema ?? e.esSistema) && (
+                        <button
+                          type="button"
+                          onClick={() => removeEstado(e.id)}
+                          className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <CollapsibleAddForm label="Agregar estado">
+                {(close) => (
+                  <>
+                    <input
+                      placeholder="Nuevo estado"
+                      value={newEstado}
+                      onChange={(e) => setNewEstado(e.target.value)}
+                      className="w-full py-2 px-3 border rounded-lg text-sm bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addEstado(close)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold cursor-pointer"
+                    >
+                      Guardar estado
+                    </button>
+                  </>
+                )}
+              </CollapsibleAddForm>
+            </section>
+          ) : activeSection === 'ubicaciones' ? (
+            <section className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-sm">
+              <div className="mb-5">
+                <h2 className="text-base font-bold text-slate-900 m-0 flex items-center gap-2">
+                  <MapPin size={18} className="text-blue-600" />
+                  {activeMeta?.label}
+                </h2>
+                <p className="text-sm text-slate-500 m-0 mt-1">{activeMeta?.description}</p>
+              </div>
+              <ul className="space-y-2 mb-4 max-h-[min(420px,50vh)] overflow-y-auto">
+                {ubicaciones.map((u) => (
+                  <li
+                    key={u.id}
+                    className="flex items-center justify-between text-sm border-b border-slate-50 pb-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            u.activo
+                              ? 'bg-slate-100 text-slate-700'
+                              : 'bg-slate-50 text-slate-400 line-through'
+                          }`}
+                        >
+                          {u.nombre}
+                        </span>
+                        <span className="text-[10px] text-slate-400">{u.tipo}</span>
+                      </div>
+                      {u.descripcion && (
+                        <p className="text-xs text-slate-500 m-0 mt-0.5 truncate">{u.descripcion}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditingUbicacion({ ...u })}
+                        className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeUbicacion(u.id)}
                         className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
                       >
                         <Trash2 size={14} />
                       </button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <CollapsibleAddForm>
-              {(close) => (
-                <>
-                  <input
-                    placeholder="Nuevo estado"
-                    value={newEstado}
-                    onChange={(e) => setNewEstado(e.target.value)}
-                    className="w-full py-2 px-3 border rounded-lg text-sm bg-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => addEstado(close)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold cursor-pointer"
-                  >
-                    Guardar estado
-                  </button>
-                </>
-              )}
-            </CollapsibleAddForm>
-          </section>
-        )}
-
-        {permissions.ubicaciones && (
-          <section className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-sm md:col-span-2">
-            <div className="flex items-center gap-2 font-bold text-[#0f172a] mb-4">
-              <MapPin size={18} />
-              Ubicaciones
-            </div>
-            <ul className="space-y-2 mb-4">
-              {ubicaciones.map((u) => (
-                <li
-                  key={u.id}
-                  className="flex items-center justify-between text-sm border-b border-slate-50 pb-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                          u.activo ? 'bg-slate-100 text-slate-700' : 'bg-slate-50 text-slate-400 line-through'
-                        }`}
-                      >
-                        {u.nombre}
-                      </span>
-                      <span className="text-[10px] text-slate-400">{u.tipo}</span>
                     </div>
-                    {u.descripcion && (
-                      <p className="text-xs text-slate-500 m-0 mt-0.5 truncate">{u.descripcion}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
+                  </li>
+                ))}
+              </ul>
+              <CollapsibleAddForm label="Agregar ubicación">
+                {(close) => (
+                  <>
+                    <div className="flex gap-2 flex-wrap">
+                      <input
+                        placeholder="Nombre"
+                        value={newUbicacion}
+                        onChange={(e) => setNewUbicacion(e.target.value)}
+                        className="flex-1 min-w-[140px] py-2 px-3 border rounded-lg text-sm bg-white"
+                      />
+                      <input
+                        placeholder="Descripción breve"
+                        value={newUbicacionDesc}
+                        onChange={(e) => setNewUbicacionDesc(e.target.value)}
+                        className="flex-1 min-w-[160px] py-2 px-3 border rounded-lg text-sm bg-white"
+                      />
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setEditingUbicacion({ ...u })}
-                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
+                      onClick={() => addUbicacion(close)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold cursor-pointer"
                     >
-                      <Pencil size={14} />
+                      Guardar ubicación
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => removeUbicacion(u.id)}
-                      className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <CollapsibleAddForm>
-              {(close) => (
-                <>
-                  <div className="flex gap-2 flex-wrap">
-                    <input
-                      placeholder="Nombre"
-                      value={newUbicacion}
-                      onChange={(e) => setNewUbicacion(e.target.value)}
-                      className="flex-1 min-w-[140px] py-2 px-3 border rounded-lg text-sm bg-white"
-                    />
-                    <input
-                      placeholder="Descripción breve"
-                      value={newUbicacionDesc}
-                      onChange={(e) => setNewUbicacionDesc(e.target.value)}
-                      className="flex-1 min-w-[160px] py-2 px-3 border rounded-lg text-sm bg-white"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => addUbicacion(close)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold cursor-pointer"
-                  >
-                    Guardar ubicación
-                  </button>
-                </>
-              )}
-            </CollapsibleAddForm>
-          </section>
-        )}
-
-        {permissions.propiedades && (
-          <PropiedadesActivosSection
-            onFlash={onFlash}
-            onChanged={async () => {
-              await onRefreshColumnas();
-            }}
-          />
-        )}
+                  </>
+                )}
+              </CollapsibleAddForm>
+            </section>
+          ) : (
+            <PropiedadesActivosSection
+              onFlash={onFlash}
+              onChanged={async () => {
+                await onRefreshColumnas();
+              }}
+            />
+          )}
+        </div>
       </div>
 
       {editingEstado && (

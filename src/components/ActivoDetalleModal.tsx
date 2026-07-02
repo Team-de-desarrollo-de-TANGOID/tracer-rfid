@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   X,
   Package,
@@ -18,6 +18,8 @@ import { getAllEditableColumns } from './ActivoTableCell';
 import { activoPermiteEditarMotivoBaja, estadoRequiereMotivoBaja } from '../utils/activoEdit';
 import { esEstadoDeBaja, estadoEstaHabilitado } from '../utils/estadoOperativo';
 import { getActivoPropiedadValor } from '../utils/activoProps';
+import { formatListaValorDisplay } from '../utils/propiedadLista';
+import PropiedadListaField from './PropiedadListaField';
 import type { Activo, ColumnaTabla, Estado, EventoActivo, InventarioColumnasConfig, Ubicacion } from '../types';
 
 type TabId = 'datos' | 'historial' | 'movimientos';
@@ -45,7 +47,7 @@ interface Props {
   onSaved?: () => void;
 }
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
   { id: 'datos', label: 'Datos', icon: <Package size={15} /> },
   { id: 'historial', label: 'Historial', icon: <History size={15} /> },
   { id: 'movimientos', label: 'Movimientos', icon: <ArrowRightLeft size={15} /> },
@@ -237,7 +239,7 @@ export default function ActivoDetalleModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[88vh] overflow-hidden border border-slate-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden border border-slate-200">
         <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-lg font-bold text-slate-900 m-0">Detalle del activo</h2>
@@ -275,10 +277,10 @@ export default function ActivoDetalleModal({
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="h-[min(52vh,520px)] overflow-y-auto p-6">
           <TabPanel tabKey={loading && tab !== 'datos' ? `loading-${tab}` : tab} direction={slideDirection}>
             {loading && tab !== 'datos' ? (
-              <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
+              <div className="h-full min-h-[min(46vh,480px)] flex flex-col items-center justify-center text-slate-400 gap-3">
                 <Loader2 size={28} className="animate-spin text-blue-400" />
                 <p className="text-sm m-0">Cargando información…</p>
               </div>
@@ -333,12 +335,12 @@ function TabPanel({
 }: {
   tabKey: string;
   direction: number;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div
       key={tabKey}
-      className="animate-tab-in"
+      className="animate-tab-in min-h-[min(46vh,480px)]"
       style={{ ['--tab-from-x' as string]: `${direction * 14}px` }}
     >
       {children}
@@ -473,12 +475,20 @@ function TabDatos({
             .map((col) => (
               <div key={col.codigo}>
                 <label className={labelClass}>{col.etiqueta}</label>
-                <input
-                  type={col.tipo === 'numero' ? 'number' : col.tipo === 'fecha' ? 'date' : 'text'}
-                  value={customProps[col.codigo] ?? ''}
-                  onChange={(e) => onCustomProp(col.codigo, e.target.value)}
-                  className={fieldClass}
-                />
+                {col.tipo === 'lista' ? (
+                  <PropiedadListaField
+                    col={col}
+                    value={customProps[col.codigo] ?? ''}
+                    onChange={(v) => onCustomProp(col.codigo, v)}
+                  />
+                ) : (
+                  <input
+                    type={col.tipo === 'numero' ? 'number' : col.tipo === 'fecha' ? 'date' : 'text'}
+                    value={customProps[col.codigo] ?? ''}
+                    onChange={(e) => onCustomProp(col.codigo, e.target.value)}
+                    className={fieldClass}
+                  />
+                )}
               </div>
             ))}
           <ReadOnlyField label="Fecha de registro" value={activo.fecha} icon={<Calendar size={14} />} />
@@ -502,7 +512,7 @@ function TabDatos({
     );
   }
 
-  const rows: { label: string; value: React.ReactNode; icon?: React.ReactNode }[] = [
+  const rows: { label: string; value: ReactNode; icon?: ReactNode }[] = [
     { label: 'TID (RFID)', value: <span className="font-mono">{tid}</span>, icon: <Tag size={14} /> },
     { label: 'SKU', value: activo.sku, icon: <Package size={14} /> },
     {
@@ -525,10 +535,12 @@ function TabDatos({
     ...(activo.fechaBaja ? [{ label: 'Motivo de baja', value: activo.motivoBaja || '—' }] : []),
     ...allEditableFields
       .filter((f) => f.esCustom)
-      .map((col) => ({
-        label: col.etiqueta,
-        value: getActivoPropiedadValor(activo, col) || '—',
-      })),
+      .map((col) => {
+        const raw = getActivoPropiedadValor(activo, col);
+        const value =
+          col.tipo === 'lista' ? formatListaValorDisplay(raw, col) || '—' : raw || '—';
+        return { label: col.etiqueta, value };
+      }),
     { label: 'Permite salida', value: activo.permiteSalida ? 'Sí' : 'No' },
     {
       label: 'Tipo operativo',
@@ -578,8 +590,8 @@ function ReadOnlyField({
   icon,
 }: {
   label: string;
-  value: React.ReactNode;
-  icon?: React.ReactNode;
+  value: ReactNode;
+  icon?: ReactNode;
 }) {
   return (
     <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
@@ -684,7 +696,7 @@ function TabMovimientos({ movimientos }: { movimientos: EventoActivo[] }) {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+    <div className="h-full min-h-[min(46vh,480px)] flex flex-col items-center justify-center text-slate-400">
       <History size={32} className="mb-3 opacity-40" />
       <p className="text-sm m-0">{message}</p>
     </div>

@@ -3,7 +3,7 @@ import { getDb } from '../db.js';
 import { authMiddleware, requirePermission } from '../middleware/auth.js';
 import { activoSelect, mapActivo, getActivoById } from '../services/activosService.js';
 import { registrarEvento, getHistorialActivo } from '../services/eventosService.js';
-import { mergePropiedadesExtra, listPropiedades } from '../services/propiedadesService.js';
+import { mergePropiedadesExtra, listPropiedades, validateCamposObligatoriosAlta } from '../services/propiedadesService.js';
 import {
   esEstadoDeBaja,
   estadoEstaHabilitado,
@@ -234,8 +234,17 @@ router.post('/lote', requirePermission('activos.crear'), (req, res) => {
   if (!Array.isArray(epcs) || epcs.length === 0) {
     return res.status(400).json({ error: 'Debe incluir al menos un TID.' });
   }
-  if (!skuId || !estadoId) {
-    return res.status(400).json({ error: 'SKU y estado son obligatorios.' });
+  try {
+    validateCamposObligatoriosAlta({
+      skuId,
+      estadoId,
+      ubicacionId,
+      descripcion,
+      codigoInterno,
+      propiedadesExtra,
+    });
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
   }
 
   const db = getDb();
@@ -316,8 +325,20 @@ router.get('/:id/historial', requirePermission('activos.ver_historial'), (req, r
 router.post('/', requirePermission('activos.crear'), (req, res) => {
   const { epc, skuId, estadoId, ubicacionId, ubicacion, descripcion, codigoInterno, propiedadesExtra } =
     req.body ?? {};
-  if (!epc?.trim() || !skuId || !estadoId) {
-    return res.status(400).json({ error: 'TID, SKU y estado son obligatorios.' });
+  if (!epc?.trim()) {
+    return res.status(400).json({ error: 'El TID es obligatorio.' });
+  }
+  try {
+    validateCamposObligatoriosAlta({
+      skuId,
+      estadoId,
+      ubicacionId,
+      descripcion,
+      codigoInterno,
+      propiedadesExtra,
+    });
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
   }
 
   const db = getDb();

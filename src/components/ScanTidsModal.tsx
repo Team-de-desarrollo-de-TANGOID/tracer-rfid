@@ -5,6 +5,7 @@ import { api } from '../api/client';
 interface Props {
   open: boolean;
   mockEnabled?: boolean;
+  initialTids?: string[];
   onClose: () => void;
   onConfirm: (tids: string[]) => void;
 }
@@ -12,6 +13,7 @@ interface Props {
 export default function ScanTidsModal({
   open,
   mockEnabled = false,
+  initialTids = [],
   onClose,
   onConfirm,
 }: Props) {
@@ -55,7 +57,7 @@ export default function ScanTidsModal({
 
   useEffect(() => {
     if (open) {
-      setTids([]);
+      setTids(initialTids.map((t) => t.trim().toUpperCase()).filter(Boolean));
       setManualTid('');
       if (mockEnabled) startScan();
       else stopScan();
@@ -63,7 +65,7 @@ export default function ScanTidsModal({
       stopScan();
     }
     return () => stopScan();
-  }, [open, mockEnabled, startScan, stopScan]);
+  }, [open, mockEnabled, initialTids, startScan, stopScan]);
 
   if (!open) return null;
 
