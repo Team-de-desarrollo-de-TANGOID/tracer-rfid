@@ -1,0 +1,8 @@
+Package: racketclub-gate
+Version: 1.0.3-fase1
+Source: racketclub
+Priority: optional
+Architecture: all
+Maintainer: TANGOID SRL
+Description: "Racket Club Fase 1 - log de lecturas TID"
+APP_TYPE: DA

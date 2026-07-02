@@ -1,0 +1,741 @@
+{
+	"info": {
+		"_postman_id": "40e1a0b0-c7ac-44db-a5fa-8106e187272a",
+		"name": "IoT Reader API Collection Copy",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get Status",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJaRUJSQSIsImV4cCI6MTY1NzI4OTg2Nn0.-VvCCsTZm61OBNeuEXsOZsGbB4Zo0nLGC4Pebs6W5DNW8pZWu-h9-XbaQn2oLONLvOyjxdQv_wWfBb7RCHiSuw",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud/status",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"status"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Version",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}"
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud/version",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"version"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Region",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud//region",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"",
+						"region"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Network",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud//network",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"",
+						"network"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set Network",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"macAddress\": \"84:24:8D:EE:57:29\",\n  \"dhcp\": false,\n  \"dnsAddress\": \"192.168.29.1\",\n  \"subnetMask\": \"255.255.255.0\",\n  \"gatewayAddress\": \"192.168.29.1\",\n  \"ipAddress\": \"192.168.29.176\"\n}"
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud//network",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"",
+						"network"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Mode",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud//mode",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"",
+						"mode"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set Mode",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"antennas\": [\r\n        1\r\n    ],\r\n    \"filter\": {\r\n        \"match\": \"prefix\",\r\n        \"operation\": \"include\",\r\n        \"value\": \"5A4542524154455354\"\r\n    },\r\n    \"mode\": \"portal\",\r\n    \"startTrigger\": {\r\n        \"port\": 1,\r\n        \"signal\": \"HIGH\"\r\n    },\r\n    \"stopInterval\": 2,\r\n    \"transmitPower\": 25\r\n}"
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud//mode",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"",
+						"mode"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get App-led",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud//app-led",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"",
+						"app-led"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set App-led",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "    {\r\n        \"color\": \"red\",\r\n        \"seconds\": 60,\r\n        \"flash\": true\r\n     }\r\n"
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud/app-led",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"app-led"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Config",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud//config",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"",
+						"config"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set Config",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud//config",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"",
+						"config"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set Gpo",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \t\"port\": 1,\r\n    \t\"state\": true\r\n    }\r\n"
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud//gpo",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"",
+						"gpo"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set Start",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJaRUJSQSIsImV4cCI6MTY1OTQzMTEwN30.A5nTEkIdiD8rO37E_M-wRx6lt_6OVJYGt4PsO9xLZwpTSCtNFfmCJj9V1voqcdZjP3oZPSbdWYy4ZREJuRFAGw",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud/start",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"start"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set Stop",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJaRUJSQSIsImV4cCI6MTY1ODkyOTg3N30.dcDQjWhANbPB7YL9gi2fqQRLdmXHM6oDdwgKy6_je4Z_GpxIPwTLnngfb-oPAFseb4SwkjFJLwb78F05X-2Sag",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud/stop",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"stop"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set Reboot",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{bearer_token_user}}",
+						"type": "text"
+					},
+					{
+						"key": "apikey",
+						"value": "{{dcs_key}}",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud//reboot",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"",
+						"reboot"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get OS",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{bearer_token_user}}"
+					}
+				],
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud//os",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"",
+						"os"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set OS",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{bearer_token_user}}"
+					},
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"version\" : \"3.7.26\"\n}"
+				},
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud/os",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"os"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "localRestLogin",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "Zebra@123",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "admin",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{scheme}}://{{reader-ip}}/cloud/localRestLogin",
+					"protocol": "{{scheme}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"cloud",
+						"localRestLogin"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "scheme",
+			"value": "https",
+			"type": "default"
+		},
+		{
+			"key": "reader-ip",
+			"value": "10.17.231.178",
+			"type": "default"
+		}
+	]
+}

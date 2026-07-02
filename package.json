@@ -17,7 +17,8 @@
     "electron:wait": "wait-on http://localhost:5173 http://localhost:3847/api/health && electronmon .",
     "build": "vite build",
     "preview": "vite preview",
-    "test:packaged": "npm run build && cross-env FC_PACKAGED_MODE=1 electron .",
+    "test:fx9600": "node scripts/test-fx9600-sync.mjs",
+    "test:fx9600:sync": "node scripts/test-fx9600-sync.mjs --sync",
     "pack:portable": "npm run build && electron-builder --win portable",
     "pack:folder": "npm run build && electron-builder --win dir",
     "pack:all": "npm run build && electron-builder --win portable dir"

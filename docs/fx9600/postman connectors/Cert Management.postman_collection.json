@@ -1,0 +1,164 @@
+{
+	"info": {
+		"_postman_id": "6b561b3f-a62d-4515-a52d-532c48f3cd9e",
+		"name": "Cert Management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = xml2Json(responseBody);\r",
+							"postman.setEnvironmentVariable(\"sessionID\", jsonData[\"g1:reply\"][\"g3:readerDevice\"][\"g3:doLogin\"][\"g3:sessionID\"]);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\" epcglobal:schemaVersion=\"0.0\" xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX9600</rm:targetName>\n  <motorm:readerDevice>\n      <motorm:doLogin>\n        <motorm:username>admin</motorm:username>\n        <motorm:password>Zebra@123</motorm:password>\n        <motorm:forceLogin>true</motorm:forceLogin>\n      </motorm:doLogin>\n  </motorm:readerDevice>\n</rm:command>\n",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD CA Certs",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<rm:command xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\r\n   <rm:id>104</rm:id>\r\n   <rm:targetName />\r\n   <motorm:readerDevice>\r\n      <motorm:sessionID>84:24:8D:FC:B4:35:e8e2b3e71ec2afa4533070191f442cd5:A</motorm:sessionID>\r\n      <motorm:addCAcert>\r\n         <motorm:CAcertName>myCA</motorm:CAcertName>\r\n         <motorm:CAfileContent>-----BEGIN CERTIFICATE-----\r\n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\r\n-----END CERTIFICATE-----</motorm:CAfileContent>\r\n      </motorm:addCAcert>\r\n   </motorm:readerDevice>\r\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DEL CA Cert",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<rm:command xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\r\n   <rm:id>104</rm:id>\r\n   <rm:targetName />\r\n   <motorm:readerDevice>\r\n      <motorm:sessionID>84:24:8D:FC:B4:35:e8e2b3e71ec2afa4533070191f442cd5:A</motorm:sessionID>\r\n      <motorm:deleteCAcert>\r\n         <motorm:CAcertname>myCA</motorm:CAcertname>\r\n      </motorm:deleteCAcert>\r\n   </motorm:readerDevice>\r\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "LIST CA Cert",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<rm:command xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\r\n   <rm:id>104</rm:id>\r\n   <rm:targetName />\r\n   <motorm:readerDevice>\r\n      <motorm:sessionID>84:24:8D:FC:B4:35:e8e2b3e71ec2afa4533070191f442cd5:A</motorm:sessionID>\r\n      <motorm:listCAcerts>\r\n      </motorm:listCAcerts>\r\n   </motorm:readerDevice>\r\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "protocol",
+			"value": "https",
+			"type": "default"
+		},
+		{
+			"key": "reader-ip",
+			"value": "192.168.0.1",
+			"type": "default"
+		}
+	]
+}

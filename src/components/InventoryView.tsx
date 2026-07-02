@@ -670,10 +670,10 @@ export default function InventoryView({
                               <button
                                 type="button"
                                 onClick={() => setDetalleActivo(item)}
-                                className="px-2 py-1 border border-slate-200 text-slate-600 rounded text-[11px] font-semibold hover:bg-slate-50 cursor-pointer flex items-center gap-1"
+                                title="Ver detalles"
+                                className="p-1.5 border border-slate-200 text-slate-600 rounded cursor-pointer hover:bg-slate-50"
                               >
-                                <Eye size={11} />
-                                Ver detalles
+                                <Eye size={13} />
                               </button>
                             )}
                             {canChangeEstado && !item.esActivo && estadosActivos[0] && (

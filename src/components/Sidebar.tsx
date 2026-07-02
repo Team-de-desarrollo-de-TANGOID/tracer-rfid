@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Logo from './Logo';
 import { APP_NAME, APP_TAGLINE } from '../constants/branding';
+import { api } from '../api/client';
 import type { SidebarTab, User } from '../types';
 
 const STORAGE_KEY = 'rc_sidebar_collapsed';
@@ -25,6 +26,8 @@ interface SidebarProps {
   user: User;
   onLogout: () => void;
   canAccessTab: (tab: SidebarTab) => boolean;
+  demoMode?: boolean;
+  canCheckReader?: boolean;
 }
 
 const NAV: { id: SidebarTab; label: string; icon: typeof Database }[] = [
@@ -44,6 +47,8 @@ export default function Sidebar({
   user,
   onLogout,
   canAccessTab,
+  demoMode = false,
+  canCheckReader = false,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -60,6 +65,35 @@ export default function Sidebar({
       /* ignore */
     }
   }, [collapsed]);
+
+  const [readerConnected, setReaderConnected] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!canCheckReader || demoMode) {
+      setReaderConnected(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const check = async () => {
+      try {
+        const st = await api.syncStatus();
+        if (!cancelled) {
+          setReaderConnected(Boolean(st.connected));
+        }
+      } catch {
+        if (!cancelled) setReaderConnected(false);
+      }
+    };
+
+    check();
+    const timer = setInterval(check, 45_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [canCheckReader, demoMode]);
 
   const inactiveCount = totalCount - activeCount;
   const visibleNav = NAV.filter((item) => canAccessTab(item.id));
@@ -147,9 +181,44 @@ export default function Sidebar({
       {/* Resumen — solo expandido */}
       {!collapsed && (
         <div className="p-4 mx-3 mb-3 bg-slate-900/40 border border-white/5 rounded-lg space-y-3">
-          <div className="flex items-center gap-2 text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-            <Info size={13} className="text-blue-400" />
-            <span>Resumen</span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-[11px] text-slate-400 font-semibold uppercase tracking-wider min-w-0">
+              <Info size={13} className="text-blue-400 flex-shrink-0" />
+              <span>Resumen</span>
+            </div>
+            {canCheckReader && !demoMode && (
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] font-medium normal-case tracking-normal flex-shrink-0"
+                title={
+                  readerConnected === null
+                    ? 'Consultando lector…'
+                    : readerConnected
+                      ? 'User App API conectada'
+                      : 'User App API sin respuesta'
+                }
+              >
+                <span
+                  className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                    readerConnected === null
+                      ? 'bg-amber-400 animate-pulse'
+                      : readerConnected
+                        ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.75)]'
+                        : 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]'
+                  }`}
+                />
+                <span
+                  className={
+                    readerConnected === null
+                      ? 'text-amber-300/90'
+                      : readerConnected
+                        ? 'text-emerald-300'
+                        : 'text-red-300'
+                  }
+                >
+                  {readerConnected === null ? '…' : readerConnected ? 'User App' : 'Offline'}
+                </span>
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-2 text-center">
             <div className="bg-slate-900/60 p-1.5 rounded border border-white/5">

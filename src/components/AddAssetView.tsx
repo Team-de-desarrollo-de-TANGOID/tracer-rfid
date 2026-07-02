@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Tag, AlertCircle, Check, Radio, Layers, X, ScanLine } from 'lucide-react';
+import { Tag, AlertCircle, Check, ScanLine, Layers, X } from 'lucide-react';
 import { api } from '../api/client';
 import ScanTidsModal from './ScanTidsModal';
 import ActivoAltaFields from './ActivoAltaFields';
@@ -45,7 +45,6 @@ export default function AddAssetView({
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const altaFields = useMemo(
@@ -130,19 +129,6 @@ export default function AddAssetView({
     }
   };
 
-  const handleScanIndividual = async () => {
-    setScanning(true);
-    setError(null);
-    try {
-      const { tid: scanned } = await api.mockScanOne();
-      setTid(scanned);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al simular lectura');
-    } finally {
-      setScanning(false);
-    }
-  };
-
   const handleSubmitIndividual = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -163,7 +149,12 @@ export default function AddAssetView({
         setCurrentTab('inventario');
       }, 1200);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al registrar');
+      const msg = err instanceof Error ? err.message : 'Error al registrar';
+      setError(
+        msg.includes('Ya existe') || msg.includes('409')
+          ? `${msg} Revise el inventario o use otro TID.`
+          : msg
+      );
     } finally {
       setSubmitting(false);
     }
@@ -230,10 +221,12 @@ export default function AddAssetView({
   return (
     <div className="flex flex-col h-full overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       <header className="px-8 py-6 bg-white/80 backdrop-blur border-b border-slate-200/80">
-        <h1 className="text-2xl font-bold text-slate-900 m-0 tracking-tight">Alta de activo</h1>
-        <p className="text-sm text-slate-500 mt-1 m-0">
-          Asocie etiquetas RFID (TID) a un SKU — individual o por lote.
-        </p>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 m-0 tracking-tight">Alta de activo</h1>
+          <p className="text-sm text-slate-500 mt-1 m-0">
+            Asocie etiquetas RFID (TID) a un SKU — individual o por lote. Ingrese los TID manualmente.
+          </p>
+        </div>
       </header>
 
       <div className="p-6 md:p-8 flex-1 overflow-y-auto">
@@ -284,31 +277,23 @@ export default function AddAssetView({
                 </h2>
                 <div>
                   <label className={labelClass}>TID de la etiqueta *</label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Tag
-                        size={16}
-                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                      />
-                      <input
-                        required
-                        disabled={!!success || submitting}
-                        value={tid}
-                        onChange={(e) => setTid(e.target.value)}
-                        placeholder="E280119420000F6A1C5A6014"
-                        className={`${fieldClass} pl-10 font-mono`}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      disabled={!!success || scanning || submitting}
-                      onClick={handleScanIndividual}
-                      className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-50 transition-colors"
-                    >
-                      <Radio size={16} className={scanning ? 'animate-pulse' : ''} />
-                      {scanning ? 'Leyendo…' : 'Escanear'}
-                    </button>
+                  <div className="relative">
+                    <Tag
+                      size={16}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      required
+                      disabled={!!success || submitting}
+                      value={tid}
+                      onChange={(e) => setTid(e.target.value)}
+                      placeholder="E280119420000F6A1C5A6014"
+                      className={`${fieldClass} pl-10 font-mono`}
+                    />
                   </div>
+                  <p className="text-xs text-slate-500 mt-2 m-0">
+                    Ingrese el TID leído con el lector RFID.
+                  </p>
                 </div>
               </section>
 
@@ -362,7 +347,7 @@ export default function AddAssetView({
                   className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-50 shadow-sm shadow-blue-600/20 transition-colors"
                 >
                   <ScanLine size={18} />
-                  Escanear etiquetas
+                  Agregar etiquetas
                 </button>
 
                 {tidsLote.length > 0 && (
@@ -436,6 +421,7 @@ export default function AddAssetView({
 
       <ScanTidsModal
         open={scanModalOpen}
+        mockEnabled={false}
         onClose={() => setScanModalOpen(false)}
         onConfirm={(tids) => setTidsLote(tids)}
       />

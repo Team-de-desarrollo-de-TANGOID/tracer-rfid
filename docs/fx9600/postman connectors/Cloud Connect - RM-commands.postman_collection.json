@@ -1,0 +1,291 @@
+{
+	"info": {
+		"_postman_id": "124a48fe-eef3-4e37-b55f-af98baec0598",
+		"name": "Cloud Connect - RM-commands",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = xml2Json(responseBody);\r",
+							"postman.setEnvironmentVariable(\"sessionID\", jsonData[\"g1:reply\"][\"g3:readerDevice\"][\"g3:doLogin\"][\"g3:sessionID\"]);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\" epcglobal:schemaVersion=\"0.0\" xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX9600</rm:targetName>\n  <motorm:readerDevice>\n      <motorm:doLogin>\n        <motorm:username>admin</motorm:username>\n        <motorm:password>change</motorm:password>\n        <motorm:forceLogin>true</motorm:forceLogin>\n      </motorm:doLogin>\n  </motorm:readerDevice>\n</rm:command>\n",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "importCloudConfig",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:importCloudConfigToReader>\n      <motorm:CloudConfigData>{\n  \"control\": {\n    \"commandResponse\": {\n      \"enableLocalRest\": false,\n      \"connections\": [\n        {\n          \"type\": \"mqtt\",\n          \"options\": {\n            \"endpoint\": {\n              \"hostName\": \"10.17.218.77\",\n              \"port\": 1883\n            },\n            \"enableSecurity\": false,\n            \"additional\": {\n              \"keepAlive\": 20,\n              \"cleanSession\": true,\n              \"debug\": false,\n              \"reconnectDelay\": 1,\n              \"reconnectDelayMax\": 1,\n              \"qos\": 0,\n              \"clientId\": \"{{deviceId}}\"\n            },\n            \"publishTopic\": [\"response/{{deviceId}}/\"],\n            \"subscribeTopic\": [\"/command/{{deviceId}}/\"]\n          }\n        }\n      ]\n    }\n  },\n  \"data\": {\n    \"event\": {\n      \"connections\": [\n        {\n          \"type\": \"mqtt\",\n          \"options\": {\n            \"endpoint\": {\n              \"hostName\": \"10.17.218.77\",\n              \"port\": 1883\n            },\n            \"enableSecurity\": false,\n            \"security\": {\n              \"verifyHostName\": true,\n              \"keyFormat\": \"PEM\",\n              \"keyAlgorithm\": \"RS256\",\n              \"CACertificateFileLocation\": \"/readerconfig/ssl/certs/cloud-trusted-ca-certs.crt\",\n              \"publicKeyFileLocation\": \"/readerconfig/ssl/server.crt\",\n              \"privateKeyFileLocation\": \"/readerconfig/ssl/server.key\"\n            },\n            \"additional\": {\n              \"keepAlive\": 20,\n              \"cleanSession\": true,\n              \"debug\": false,\n              \"reconnectDelay\": 1,\n              \"reconnectDelayMax\": 1,\n              \"qos\": 0,\n              \"clientId\": \"{{deviceId}}\"\n            },\n            \"publishTopic\": [\"readEvents/{{deviceId}}/\"],\n            \"subscribeTopic\": []\n          }\n        }\n      ]\n    },\n    \"retention\": {\n      \"throttle\": 500,\n      \"maxNumEvents\": 150000,\n      \"maxEventRetentionTimeInMin\": 0\n    }\n  },\n  \"management\": {\n    \"commandResponse\": {\n      \"enableLocalRest\": false,\n      \"connections\": [\n        {\n          \"type\": \"mqtt\",\n          \"options\": {\n            \"endpoint\": {\n              \"hostName\": \"10.17.218.77\",\n              \"port\": 1883\n            },\n            \"enableSecurity\": false,\n            \"security\": {\n              \"verifyHostName\": true,\n              \"keyFormat\": \"PEM\",\n              \"keyAlgorithm\": \"RS256\",\n              \"CACertificateFileLocation\": \"/readerconfig/ssl/certs/cloud-trusted-ca-certs.crt\",\n              \"publicKeyFileLocation\": \"/readerconfig/ssl/server.crt\",\n              \"privateKeyFileLocation\": \"/readerconfig/ssl/server.key\"\n            },\n            \"additional\": {\n              \"keepAlive\": 20,\n              \"cleanSession\": true,\n              \"debug\": false,\n              \"reconnectDelay\": 1,\n              \"reconnectDelayMax\": 1,\n              \"qos\": 0,\n              \"clientId\": \"{{deviceId}}\"\n            },\n            \"publishTopic\": [\"response/{{deviceId}}/\"],\n            \"subscribeTopic\": [\"/command/{{deviceId}}/\"]\n          }\n        }\n      ]\n    }\n  }\n}</motorm:CloudConfigData>\n    </motorm:importCloudConfigToReader>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "exportCloudConfig",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:exportCloudConfigFromReader/>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "isEnrolledToCloud",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rm:command xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\" epcglobal:schemaVersion=\"0.0\" xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\">\n   <rm:id>104</rm:id>\n   <rm:targetName />\n   <motorm:readerDevice>\n      <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n      <motorm:isEnrolledToCloud />\n   </motorm:readerDevice>\n</rm:command>\n",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "EnrollToCloud",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rm:command xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\" epcglobal:schemaVersion=\"0.0\" xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\">\n   <rm:id>104</rm:id>\n   <rm:targetName />\n   <motorm:readerDevice>\n      <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n      <motorm:enrollToCloud>\n         <motorm:provider>2</motorm:provider>\n         <motorm:code>xxx</motorm:code>\n         <motorm:autoConnect>true</motorm:autoConnect>\n      </motorm:enrollToCloud>\n   </motorm:readerDevice>\n</rm:command>\n",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "isConnectedToCloud",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rm:command xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\" epcglobal:schemaVersion=\"0.0\" xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\">\n   <rm:id>104</rm:id>\n   <rm:targetName />\n   <motorm:readerDevice>\n      <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n      <motorm:isConnectedToCloud />\n   </motorm:readerDevice>\n</rm:command>\n",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "connectToCloud",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rm:command xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\" epcglobal:schemaVersion=\"0.0\" xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\">\n   <rm:id>104</rm:id>\n   <rm:targetName />\n   <motorm:readerDevice>\n      <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n      <motorm:connectToCloud />\n   </motorm:readerDevice>\n</rm:command>\n",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "disconnectFromCloud",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rm:command xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n   <rm:id>104</rm:id>\n   <rm:targetName />\n   <motorm:readerDevice>\n      <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n      <motorm:disconnectFromCloud/>\n    </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "disconnectFromCloud Copy",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rm:command xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n   <rm:id>104</rm:id>\n   <rm:targetName />\n   <motorm:readerDevice>\n      <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n      <motorm:disconnectFromCloud/>\n    </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

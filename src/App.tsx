@@ -17,6 +17,9 @@ import { PERMISSION_TAB_MAP } from './types';
 export default function App() {
   const { user, loading: authLoading, login, logout, hasPermission } = useAuth();
   const [tab, setTab] = useState<SidebarTab>('inventario');
+  const [configLectorSection, setConfigLectorSection] = useState<'conexion' | 'monitorear' | null>(
+    null
+  );
   const [activos, setActivos] = useState<Activo[]>([]);
   const [estados, setEstados] = useState<Estado[]>([]);
   const [skus, setSkus] = useState<Sku[]>([]);
@@ -26,6 +29,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inventarioFocusActivoId, setInventarioFocusActivoId] = useState<number | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
 
   const canAccessTab = useCallback(
     (t: SidebarTab) => {
@@ -84,6 +88,11 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
+    api.health().then((h) => setDemoMode(h.demo)).catch(() => setDemoMode(true));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
     if (!canAccessTab(tab)) {
       const first = (Object.keys(PERMISSION_TAB_MAP) as SidebarTab[]).find(canAccessTab);
       if (first) setTab(first);
@@ -112,10 +121,14 @@ export default function App() {
         user={user}
         onLogout={logout}
         canAccessTab={canAccessTab}
+        demoMode={demoMode}
+        canCheckReader={
+          hasPermission('sync.ver_historial') || hasPermission('sync.ejecutar')
+        }
       />
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
-        <DemoBanner />
+        <DemoBanner demo={demoMode} />
         {error && (
           <div className="mx-4 mt-2 px-4 py-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
             {error} — Verifique que el servidor local esté en ejecución.
@@ -207,7 +220,21 @@ export default function App() {
                 />
               )}
               {tab === 'sincronizar' && canAccessTab('sincronizar') && (
-                <SyncView onSynced={refresh} canSync={hasPermission('sync.ejecutar')} />
+                <SyncView
+                  onSynced={refresh}
+                  canSync={hasPermission('sync.ejecutar')}
+                  canViewAllowList={
+                    hasPermission('sync.ver_historial') || hasPermission('sync.ejecutar')
+                  }
+                  onOpenConfig={
+                    canAccessTab('configuracion')
+                      ? () => {
+                          setConfigLectorSection('conexion');
+                          setTab('configuracion');
+                        }
+                      : undefined
+                  }
+                />
               )}
               {tab === 'configuracion' && canAccessTab('configuracion') && (
                 <ConfigView
@@ -216,11 +243,16 @@ export default function App() {
                   ubicaciones={ubicaciones}
                   onRefresh={refresh}
                   onRefreshColumnas={refreshColumnas}
+                  initialLectorTab={configLectorSection}
+                  onLectorTabConsumed={() => setConfigLectorSection(null)}
                   permissions={{
                     sku: hasPermission('config.sku'),
                     estados: hasPermission('config.estados'),
                     ubicaciones: hasPermission('config.ubicaciones'),
                     propiedades: hasPermission('config.propiedades'),
+                    syncConfig: hasPermission('sync.ejecutar'),
+                    syncMonitor:
+                      hasPermission('sync.ver_historial') || hasPermission('sync.ejecutar'),
                   }}
                 />
               )}

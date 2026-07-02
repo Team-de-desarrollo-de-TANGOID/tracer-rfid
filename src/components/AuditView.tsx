@@ -1,13 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ScanLine,
-  Radio,
   CheckCircle,
   AlertCircle,
   Loader2,
   Columns3,
   Square,
-  StopCircle,
   ExternalLink,
   History,
   Save,
@@ -19,6 +17,7 @@ import { api } from '../api/client';
 import ActivoTableCell, { TidOnlyCell } from './ActivoTableCell';
 import ColumnPickerModal from './ColumnPickerModal';
 import AuditoriaDetalleModal from './AuditoriaDetalleModal';
+import ScanTidsModal from './ScanTidsModal';
 import SortableColumnHeader, { useColumnSortState } from './SortableColumnHeader';
 import { findColumna, sortAuditRows } from '../utils/tableSort';
 import { DEFAULT_INVENTORY_COLUMNS, toggleColumnVisibility, clampVisibleColumns } from '../constants/inventoryColumns';
@@ -60,7 +59,7 @@ export default function AuditView({
   onGoToRecord,
 }: Props) {
   const [viewTab, setViewTab] = useState<ViewTab>('curso');
-  const [scanning, setScanning] = useState(false);
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
   const [readTids, setReadTids] = useState<string[]>([]);
   const [auditStartedAt, setAuditStartedAt] = useState<string | null>(null);
   const [auditNotas, setAuditNotas] = useState('');
@@ -73,7 +72,6 @@ export default function AuditView({
   const [historial, setHistorial] = useState<AuditoriaResumen[]>([]);
   const [historialLoading, setHistorialLoading] = useState(false);
   const [detalleAuditoriaId, setDetalleAuditoriaId] = useState<number | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const columnasActivas = columnasConfig?.columnasActivas ?? DEFAULT_INVENTORY_COLUMNS;
 
@@ -120,44 +118,14 @@ export default function AuditView({
   const registrados = rows.filter((r) => r.registrado).length;
   const desconocidos = rows.length - registrados;
 
-  const stopScan = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    setScanning(false);
-  }, []);
-
-  const addTid = useCallback((raw: string) => {
-    const normalized = raw.trim().toUpperCase();
-    if (!normalized) return;
-    setReadTids((prev) => (prev.includes(normalized) ? prev : [...prev, normalized]));
-  }, []);
-
-  const startScan = useCallback(() => {
-    stopScan();
-    setScanning(true);
+  const openAuditModal = () => {
     setSaveMessage(null);
     setSaveError(null);
     setAuditStartedAt((prev) => prev ?? nowLocalSql());
-
-    const poll = async () => {
-      try {
-        const { tid } = await api.mockAuditScanOne();
-        addTid(tid);
-      } catch {
-        /* ignore */
-      }
-    };
-
-    poll();
-    intervalRef.current = setInterval(poll, 600 + Math.random() * 400);
-  }, [addTid, stopScan]);
-
-  useEffect(() => () => stopScan(), [stopScan]);
+    setAuditModalOpen(true);
+  };
 
   const handleSaveAudit = async () => {
-    stopScan();
     if (readTids.length === 0 || !canGuardarAuditoria) return;
     setSaving(true);
     setSaveError(null);
@@ -180,7 +148,6 @@ export default function AuditView({
   };
 
   const handleNewAudit = () => {
-    stopScan();
     setReadTids([]);
     setAuditStartedAt(null);
     setAuditNotas('');
@@ -260,7 +227,7 @@ export default function AuditView({
         <div>
           <h1 className="text-2xl font-bold text-[#0f172a] m-0">Auditoría rápida</h1>
           <p className="text-[13px] text-[#64748b] mt-1 m-0">
-            Lectura masiva con lector R3 — {activos.length} activos en inventario. Guarde cada
+            Lectura masiva con lector RFID — {activos.length} activos en inventario. Guarde cada
             auditoría para consultarla después.
           </p>
         </div>
@@ -306,40 +273,16 @@ export default function AuditView({
         ) : (
           <>
             <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-sm flex flex-wrap items-center gap-4 flex-shrink-0">
-              {!scanning ? (
-                <button
-                  type="button"
-                  onClick={startScan}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-semibold cursor-pointer"
-                >
-                  <Radio size={18} />
-                  {readTids.length > 0 ? 'Reanudar lectura' : 'Iniciar auditoría'}
-                </button>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3 flex-1 min-w-[200px]">
-                    <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
-                      <Radio size={20} className="animate-pulse" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 m-0">Leyendo etiquetas…</p>
-                      <p className="text-xs text-slate-500 m-0">
-                        {auditStartedAt ? `Inicio: ${auditStartedAt}` : 'Acerque el lector al canasto'}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={stopScan}
-                    className="flex items-center gap-2 px-5 py-2.5 border border-slate-300 bg-white text-slate-700 rounded-lg text-sm font-semibold cursor-pointer hover:bg-slate-50"
-                  >
-                    <StopCircle size={16} />
-                    Detener lectura
-                  </button>
-                </>
-              )}
+              <button
+                type="button"
+                onClick={openAuditModal}
+                className="flex items-center gap-2 px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-semibold cursor-pointer"
+              >
+                <ScanLine size={18} />
+                {readTids.length > 0 ? 'Agregar más etiquetas' : 'Agregar etiquetas'}
+              </button>
 
-              {readTids.length > 0 && !scanning && canGuardarAuditoria && (
+              {readTids.length > 0 && canGuardarAuditoria && (
                 <button
                   type="button"
                   onClick={handleSaveAudit}
@@ -363,7 +306,7 @@ export default function AuditView({
 
               <div className="flex items-center gap-2 text-xs text-slate-500 ml-auto">
                 <ScanLine size={16} />
-                Lector R3 simulado
+                Ingrese TID manualmente
               </div>
             </div>
 
@@ -394,7 +337,7 @@ export default function AuditView({
               </div>
             )}
 
-            {(scanning || readTids.length > 0) && (
+            {readTids.length > 0 && (
               <>
                 <div className="grid grid-cols-3 gap-4 flex-shrink-0">
                   <StatCard label="Tags leídos" value={rows.length} />
@@ -467,21 +410,15 @@ export default function AuditView({
                         ))}
                       </tbody>
                     </table>
-                    {rows.length === 0 && scanning && (
-                      <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
-                        <Loader2 size={28} className="animate-spin text-violet-400" />
-                        <p className="text-sm m-0">Esperando lectura de etiquetas…</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </>
             )}
 
-            {!scanning && readTids.length === 0 && (
+            {readTids.length === 0 && (
               <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-3 border border-dashed border-slate-200 rounded-xl bg-white/50">
                 <Square size={40} className="opacity-30" />
-                <p className="text-sm m-0">Pulse «Iniciar auditoría» para comenzar la lectura de etiquetas</p>
+                <p className="text-sm m-0">Pulse «Agregar etiquetas» para comenzar la auditoría</p>
               </div>
             )}
           </>
@@ -499,6 +436,19 @@ export default function AuditView({
           onSave={saveColumnas}
         />
       )}
+
+      <ScanTidsModal
+        open={auditModalOpen}
+        mockEnabled={false}
+        onClose={() => setAuditModalOpen(false)}
+        onConfirm={(tids) => {
+          setReadTids((prev) => {
+            const set = new Set(prev);
+            for (const t of tids) set.add(t);
+            return [...set];
+          });
+        }}
+      />
 
       <AuditoriaDetalleModal
         open={detalleAuditoriaId !== null}

@@ -1,0 +1,511 @@
+{
+	"info": {
+		"_postman_id": "d5949815-4d2e-42ad-ba35-2c980047a2ca",
+		"name": "Cloud Connect Enhanced UI",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"gettoken\", function () {\r",
+							"    var jsonData = xml2Json(responseBody);\r",
+							"    pm.collectionVariables.set(\"sessionID\", jsonData[\"g1:reply\"][\"g3:readerDevice\"][\"g3:doLogin\"][\"g3:sessionID\"]);\r",
+							"});\r",
+							"\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\" epcglobal:schemaVersion=\"0.0\" xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX9600</rm:targetName>\n  <motorm:readerDevice>\n      <motorm:doLogin>\n        <motorm:username>admin</motorm:username>\n        <motorm:password>Zebra@123</motorm:password>\n        <motorm:forceLogin>true</motorm:forceLogin>\n      </motorm:doLogin>\n  </motorm:readerDevice>\n</rm:command>\n",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "VIEW endpoints",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:manageCloudEndpoints>\n        <motorm:operation>VIEW</motorm:operation>\n        <motorm:data></motorm:data>\n    </motorm:manageCloudEndpoints>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD endpoints (MQTT)",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>84:24:8D:FC:B4:1C:0a6fa34741a3816d259d39b7b0280f92:A</motorm:sessionID>\n    <motorm:manageCloudEndpoints>\n        <motorm:operation>ADD</motorm:operation>\n        <motorm:data>{\n    \"name\": \"MQTT #18\",\n    \"description\": \"MQTT Test  Broker\",\n    \"type\": \"MQTT\",\n    \"configuration\": {\n        \"endpoint\": {\n            \"hostname\": \"10.17.218.77\",\n            \"port\": 1883,\n            \"protocol\": \"tcp\"\n        },\n        \"additional\": {\n            \"clientId\": \"{{deviceId}}\",\n            \"cleanSession\": true,\n            \"keepAlive\": 30,\n            \"debug\": false\n        },\n        \"topics\": {\n            \"tagEvents\": {\n                \"topic\": \"/tagEvents/{{deviceId}}\",\n                \"qos\": 0,\n                \"retain\": true\n            },\n            \"managementEvents\": {\n                \"topic\": \"/events/{{deviceId}}\",\n                \"qos\": 0,\n                \"retain\": true\n            },\n            \"management\": {\n                \"command\": {\n                    \"topic\": \"/command/{{deviceId}}\",\n                    \"qos\": 0,\n                    \"retain\": true\n                },\n                \"response\": {\n                    \"topic\": \"/response/{{deviceId}}\",\n                    \"qos\": 0,\n                    \"retain\": true\n                }\n            },\n            \"control\": {\n                \"command\": {\n                    \"topic\": \"/command/{{deviceId}}\",\n                    \"qos\": 0,\n                    \"retain\": true\n                },\n                \"response\": {\n                    \"topic\": \"/response/{{deviceId}}\",\n                    \"qos\": 0,\n                    \"retain\": true\n                }\n            }\n        }\n    }\n}</motorm:data>\n    </motorm:manageCloudEndpoints>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD endpoints (WS)",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\" epcglobal:schemaVersion=\"0.0\" xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:rm=\"urn:epcglobal:rm:xsd:1\" xmlns:epcglobal=\"urn:epcglobal:xsd:1\" xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n    <rm:id>99</rm:id>\n    <rm:targetName>MyFX7500</rm:targetName>\n    <motorm:readerDevice>\n        <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n        <motorm:manageCloudEndpoints>\n            <motorm:operation>ADD</motorm:operation>\n            <motorm:data>{\n    \"name\": \"WS\",\n    \"description\": \"WS Test\",\n    \"type\": \"WEBSOCKET\",\n    \"configuration\":\n    {\n        \"endpoint\":\n        {\n            \"protocol\": \"wss\"\n        },\n        \"additional\":\n        {\n            \"batching\":\n            {\n                \"maxPayloadSizePerReport\": 0,\n                \"reportingInterval\": 0\n            },\n            \"retention\":\n            {\n                \"maxEventRetentionTimeInMin\": 50,\n                \"maxNumEvents\": 150000,\n                \"throttle\": 500\n            }\n        },\n        \"security\":{\n        \t\"verifyServerCertificate\": false,\n        \t\"verifyServerHostName\": false\n        }\n    }\n}\n             </motorm:data>\n        </motorm:manageCloudEndpoints>\n    </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD endpoints (AWS)",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:manageCloudEndpoints>\n        <motorm:operation>ADD</motorm:operation>\n        <motorm:data>{\n    \"configuration\": {\n      \"connectionParams\": {\n        \"clientId\": \"test-e48dee74-2449-47bd-a6b7-0632dd932067\",\n        \"debug\": false,\n        \"deviceEndpoint\": \"a2zfe1kcf0rw55-ats.iot.ap-south-1.amazonaws.com\",\n        \"port\": 8883\n      },\n      \"security\": {\n        \"certificates\": {\n          \"CACertificatePath\": \"/apps/AWS_new/AmazonRootCA1.pem\",\n          \"certAlgorithm\": \"RS256\",\n          \"certFormat\": \"PEM\",\n          \"certificatePath\": \"/apps/AWS_new/10a841aa9e690ec025c0379fb366703e5bbdd6c8819d7834281651b30f40ff90-certificate.pem.crt\",\n          \"privateKeyPath\": \"/apps/AWS_new/10a841aa9e690ec025c0379fb366703e5bbdd6c8819d7834281651b30f40ff90-private.pem.key\"\n        },\n        \"useLocalCerts\": true,\n        \"verifyServerCertificate\": true\n      },\n      \"topics\": {\n        \"control\": {\n          \"command\": {\n            \"qos\": 0,\n            \"retain\": false,\n            \"topic\": \"commands\"\n          },\n          \"response\": {\n            \"qos\": 0,\n            \"retain\": false,\n            \"topic\": \"responses\"\n          }\n        },\n        \"management\": {\n          \"command\": {\n            \"qos\": 0,\n            \"retain\": false,\n            \"topic\": \"commands\"\n          },\n          \"response\": {\n            \"qos\": 0,\n            \"retain\": false,\n            \"topic\": \"responses\"\n          }\n        },\n        \"managementEvents\": {\n          \"qos\": 0,\n          \"retain\": false,\n          \"topic\": \"asynevents\"\n        },\n        \"tagEvents\": {\n          \"qos\": 0,\n          \"retain\": false,\n          \"topic\": \"events\"\n        }\n      }\n    },\n    \"description\": \"AWS Demo Zebra\",\n    \"name\": \"AWS #1\",\n    \"type\": \"AWS\"\n  }</motorm:data>\n    </motorm:manageCloudEndpoints>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD endpoints (AWS CERT)",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:manageCloudEndpoints>\n        <motorm:operation>ADD</motorm:operation>\n        <motorm:data>{\n    \"configuration\": {\n        \"connectionParams\": {\n            \"clientId\": \"test-e48dee74-2449-47bd-a6b7-0632dd932067\",\n            \"debug\": false,\n            \"deviceEndpoint\": \"a2zfe1kcf0rw55-ats.iot.ap-south-1.amazonaws.com\",\n            \"port\": 8883\n        },\n        \"security\": {\n            \"certificates\": {\n                \"CACertificateContent\": \"-----BEGIN CERTIFICATE-----\\r\\nMIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF\\r\\nADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6\\r\\nb24gUm9vdCBDQSAxMB4XDTE1MDUyNjAwMDAwMFoXDTM4MDExNzAwMDAwMFowOTEL\\r\\nMAkGA1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJv\\r\\nb3QgQ0EgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALJ4gHHKeNXj\\r\\nca9HgFB0fW7Y14h29Jlo91ghYPl0hAEvrAIthtOgQ3pOsqTQNroBvo3bSMgHFzZM\\r\\n9O6II8c+6zf1tRn4SWiw3te5djgdYZ6k/oI2peVKVuRF4fn9tBb6dNqcmzU5L/qw\\r\\nIFAGbHrQgLKm+a/sRxmPUDgH3KKHOVj4utWp+UhnMJbulHheb4mjUcAwhmahRWa6\\r\\nVOujw5H5SNz/0egwLX0tdHA114gk957EWW67c4cX8jJGKLhD+rcdqsq08p8kDi1L\\r\\n93FcXmn/6pUCyziKrlA4b9v7LWIbxcceVOF34GfID5yHI9Y/QCB/IIDEgEw+OyQm\\r\\njgSubJrIqg0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC\\r\\nAYYwHQYDVR0OBBYEFIQYzIU07LwMlJQuCFmcx7IQTgoIMA0GCSqGSIb3DQEBCwUA\\r\\nA4IBAQCY8jdaQZChGsV2USggNiMOruYou6r4lK5IpDB/G/wkjUu0yKGX9rbxenDI\\r\\nU5PMCCjjmCXPI6T53iHTfIUJrU6adTrCC2qJeHZERxhlbI1Bjjt/msv0tadQ1wUs\\r\\nN+gDS63pYaACbvXy8MWy7Vu33PqUXHeeE6V/Uq2V8viTO96LXFvKWlJbYK8U90vv\\r\\no/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU\\r\\n5MsI+yMRQ+hDKXJioaldXgjUkK642M4UwtBV8ob2xJNDd2ZhwLnoQdeXeGADbkpy\\r\\nrqXRfboQnoZsG4q5WTP468SQvvG5\\r\\n-----END CERTIFICATE-----\\r\\n\",\n                \"certAlgorithm\": \"RS256\",\n                \"certFormat\": \"PEM\",\n                \"certificateContent\": \"-----BEGIN CERTIFICATE-----\\r\\nMIIDWjCCAkKgAwIBAgIVAJQ+5/qQOYYm7ULfg6ywVdRrQEelMA0GCSqGSIb3DQEB\\r\\nCwUAME0xSzBJBgNVBAsMQkFtYXpvbiBXZWIgU2VydmljZXMgTz1BbWF6b24uY29t\\r\\nIEluYy4gTD1TZWF0dGxlIFNUPVdhc2hpbmd0b24gQz1VUzAeFw0yMTA3MjEwOTEx\\r\\nMjdaFw00OTEyMzEyMzU5NTlaMB4xHDAaBgNVBAMME0FXUyBJb1QgQ2VydGlmaWNh\\r\\ndGUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC12t7BEXaI29DU8G/5\\r\\nwz2VhgAbQieCbZ0Ba8ynmB8Nl5EGfqUUvrk0YG+RmiJtn2n6M/HzWud7ZCMyawuM\\r\\nQhxiOHovGj1T53fuWtyp4uMAU4zHaSnVzo2TD+r3CFXmNRg3MuTJNpbMQbQkT8pu\\r\\nCn1+ZkQsrWeyH3Ip414VyJYzFbcyvb4b7Wmt1L8inUbRxn5fsdkmYeqSulWmAl0U\\r\\nLzlk/GpRoP9lzHUDEtRT1ldXZVJkx36R8KBZswc+fMTLvrvLNAQureJXT9kIAsKm\\r\\nlUP62ET4T+r1fddpm21m3A20sBcDYnMr53XhIFnhbV2zv0viyFqNCts6DqD8Vw7s\\r\\n14DfAgMBAAGjYDBeMB8GA1UdIwQYMBaAFLWohP9GSyWCjQTcmtGB2ccSq6qlMB0G\\r\\nA1UdDgQWBBT43tlFCB7AjtVQjK/9ccS4nNTLUzAMBgNVHRMBAf8EAjAAMA4GA1Ud\\r\\nDwEB/wQEAwIHgDANBgkqhkiG9w0BAQsFAAOCAQEAcc4RU4GcqW3L/mUdopFzY9Gj\\r\\n/FwrUr6JI4Y3q2kFJaBssW/y/RNX+Y0qn4Yj7FjIG5czEa8j7FqLtoUiQlF7cicQ\\r\\nBHI4lMqmbeZPD0d1u+SaCoXd4dkhlbpmC5incSjm9CyaDzQ9Q9+cmOhhLEhPunUw\\r\\njrChhQ9Q3wEiYN8JY1S9VZlD+9x4XAK1kPcMsa2jS2uMH4S7kaQKwgE2fLm9UN4h\\r\\n3T1tTjt5E26YhGLi0WM2adamJnVMCZqhYC751Way4Z5CLr1C66nDoYlN/XnFRuaO\\r\\npcVVvErVyNeGa/2Tf5C4YwJjfff2r7T6yztsaipX/LcbN2Pbutllx+PyG0Fq3w==\\r\\n-----END CERTIFICATE-----\\r\\n\",\n                \"privateKeyContent\": \"-----BEGIN RSA PRIVATE KEY-----\\r\\nMIIEpAIBAAKCAQEAtdrewRF2iNvQ1PBv+cM9lYYAG0Ingm2dAWvMp5gfDZeRBn6l\\r\\nFL65NGBvkZoibZ9p+jPx81rne2QjMmsLjEIcYjh6Lxo9U+d37lrcqeLjAFOMx2kp\\r\\n1c6Nkw/q9whV5jUYNzLkyTaWzEG0JE/Kbgp9fmZELK1nsh9yKeNeFciWMxW3Mr2+\\r\\nG+1prdS/Ip1G0cZ+X7HZJmHqkrpVpgJdFC85ZPxqUaD/Zcx1AxLUU9ZXV2VSZMd+\\r\\nkfCgWbMHPnzEy767yzQELq3iV0/ZCALCppVD+thE+E/q9X3XaZttZtwNtLAXA2Jz\\r\\nK+d14SBZ4W1ds79L4shajQrbOg6g/FcO7NeA3wIDAQABAoIBABjVuRH4xo1OJ6jM\\r\\n5R3g0eo3kJAoaqjfO0/UXvCMT8FVb5LJfNXmbfh/Kv1hZU4/NQPcUDCBu5cYR848\\r\\n3CjdZm7rc5Q3KyToOXKtqfDxcTq8Lj+VVwdB3Ae3ZskxtDlqCtKO+ruX3uQqHOXQ\\r\\nl76LZDP811aan8ytirO5v0GOUSTMmSOTLF1vRxa15Zrj7pXRMGd6XqfOp4o0aKRe\\r\\nikDbzh7mymRnz8dU0hfqKtZdTU/IloB2Xaj/vgx9dczkelCWgxcfBpgrSkIiLMr2\\r\\nfM/9YouxCXK9zt/aH7Z6XPxWWau5zkciOpyVD00KFRVgtQ9+BxWW22DQQBQxkB5G\\r\\nkbiiZgECgYEA778dTYngYIceIuW4VfICkyvj7gaF8+VsgpXV12zd2zYOjHiF2CSv\\r\\nd/Lfu9bKp8mrgQ4IWeiRSbj3qfwhBD5RhVpPD+1KdUu/Ii0gA2sduqdIjmpz5Rop\\r\\nyxzEcWLim3OgAtr1i0qsM28wBWtRvqJ4W7v+DjXt+KQen7K6v1xtRF8CgYEAwi8G\\r\\n5g5Bw+5zcMujZaPgWBrXEVVeA1ovIzABFZpUiyConAaxqK4wdIwLbg3yPPAChPAX\\r\\nz2J0BGpI//Hq9pURk6Ql8vZzbn3oupkeXOFcWRIDshkt1uZXNPT31h/pBxqT4gSZ\\r\\neiJXlIiq4KIbGA3QRl971xNyq2z83hwrNpZrE4ECgYEA7E7O/j95Zwune7Q8BpK9\\r\\nUPzA9Dt/yxAG7YvstCL9ZnWYz4J4QryeK7e8KXSkWc/g+RqwxpYCpsznaKg4jusy\\r\\nBSQnq8YzTvwzT+d0l4n8Sp9aV+27gEVSjn4zbqOOQrUsMcRKpFoc87GTfrPyZdnU\\r\\nkm7xEma7wglamgRcKARdOzcCgYBMdlQTFp4S1rwiOC15AlR+nOL+8kx4qXRSOL7U\\r\\nkNalihCaj5A5SY3O9q4xgdBW6nMzgY7+nFfuvSNNlSbePciUCFjhGOZPJckUYOKx\\r\\n1BOXBx7pbDy+mCjSs3s7l4kcwPxmTUVZ8FfoJwCSP4LHr/jJHSQYhpHqqpnPo+vo\\r\\nLMaxAQKBgQCH+THydZJC5zVlJPSUkw+hG3LGu37ihMnrcMWAsvKt2iWqd7EyrhKJ\\r\\nq1t/GisVbYk4Z8LHg8mlK6fxipKfmTE99Dw1bF3g0xDvydDyFQCx3g3mt1jmO0Fk\\r\\nFOwr4P5tLglqw+raohI2uPT6Ui7ELfGMlJ9tZddsHkLq2IF2R0LIrg==\\r\\n-----END RSA PRIVATE KEY-----\\r\\n\"\n            },\n            \"useLocalCerts\": false,\n            \"verifyServerCertificate\": true\n        },\n        \"topics\": {\n            \"control\": {\n                \"command\": {\n                    \"qos\": 0,\n                    \"retain\": false,\n                    \"topic\": \"commands\"\n                },\n                \"response\": {\n                    \"qos\": 0,\n                    \"retain\": false,\n                    \"topic\": \"responses\"\n                }\n            },\n            \"management\": {\n                \"command\": {\n                    \"qos\": 0,\n                    \"retain\": false,\n                    \"topic\": \"commands\"\n                },\n                \"response\": {\n                    \"qos\": 0,\n                    \"retain\": false,\n                    \"topic\": \"responses\"\n                }\n            },\n            \"managementEvents\": {\n                \"qos\": 0,\n                \"retain\": false,\n                \"topic\": \"asynevents\"\n            },\n            \"tagEvents\": {\n                \"qos\": 0,\n                \"retain\": false,\n                \"topic\": \"events\"\n            }\n        }\n    },\n    \"description\": \"AWS Demo\",\n    \"name\": \"AWS #1\",\n    \"type\": \"AWS\"\n}</motorm:data>\n    </motorm:manageCloudEndpoints>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD endpoints (AZURE)",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:manageCloudEndpoints>\n        <motorm:operation>ADD</motorm:operation>\n        <motorm:data>{\n    \"name\": \"AZURE #2\",\n    \"description\": \"AZURE Dev Zebra\",\n    \"type\": \"AZURE\",\n    \"configuration\": {\n        \"connectionParams\": {\n            \"hubName\": \"HubForZebraRFID\",\n            \"deviceName\": \"FX9600EE5729\",\n            \"port\": 8883,\n            \"debug\": false\n        },\n        \"security\": {\n            \"useLocalCerts\": true,\n            \"certificates\": {\n                \"certificatePath\": \"/apps/certs_azure/mydevkitcertificate.pem\",\n                \"certAlgorithm\": \"RS256\",\n                \"certFormat\": \"PEM\",\n                \"privateKeyPath\": \"/apps/certs_azure/mydevkitkey.pem\",\n                \"CACertificatePath\": \"/apps/certs_azure/ca.pem\"\n            },\n            \"verifyServerCertificate\": true\n        },\n        \"topics\": {\n            \"tagEvents\": {\n                \"topic\": \"devices/FX9600EE5729/messages/events/\",\n                \"qos\": 0,\n                \"retain\": true\n            },\n            \"managementEvents\": {\n                \"topic\": \"devices/FX9600EE5729/messages/events/\",\n                \"qos\": 0,\n                \"retain\": true\n            },\n            \"management\": {\n                \"command\": {\n                    \"topic\": \"devices/FX9600EE5729/messages/devicebound/#\",\n                    \"qos\": 0,\n                    \"retain\": true\n                },\n                \"response\": {\n                    \"topic\": \"devices/FX9600EE5729/messages/events/\",\n                    \"qos\": 0,\n                    \"retain\": true\n                }\n            },\n            \"control\": {\n                \"command\": {\n                    \"topic\": \"devices/FX9600EE5729/messages/devicebound/#\",\n                    \"qos\": 0,\n                    \"retain\": true\n                },\n                \"response\": {\n                    \"topic\": \"devices/FX9600EE5729/messages/events/\",\n                    \"qos\": 0,\n                    \"retain\": true\n                }\n            }\n        }\n    }\n}</motorm:data>\n    </motorm:manageCloudEndpoints>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD endpoints (AZURE CERT)",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:manageCloudEndpoints>\n        <motorm:operation>ADD</motorm:operation>\n        <motorm:data>{\n    \"name\": \"AZURE #1\",\n    \"description\": \"AZURE Demo\",\n    \"type\": \"AZURE\",\n    \"configuration\": {\n        \"connectionParams\": {\n            \"hubName\": \"HubForZebraRFID\",\n            \"deviceName\": \"FX9600EE5729\",\n            \"port\": 8883,\n            \"debug\": false\n        },\n        \"security\": {\n            \"useLocalCerts\": false,\n            \"certificates\": {\n                \"certificateContent\": \"-----BEGIN CERTIFICATE-----\\r\\nMIID/zCCAuegAwIBAgIUI5mYMgwwx+MwAcarOmDbE/EjJIQwDQYJKoZIhvcNAQEL\\r\\nBQAwgY4xCzAJBgNVBAYTAklOMQswCQYDVQQIDAJBUDEMMAoGA1UEBwwDR05UMRsw\\r\\nGQYDVQQKDBJaZWJyYSBUZWNobm9sb2dpZXMxDTALBgNVBAsMBFJGSUQxFTATBgNV\\r\\nBAMMDEZYOTYwMEVFNTcyOTEhMB8GCSqGSIb3DQEJARYScmJhY2hpbmFAemVicmEu\\r\\nY29tMB4XDTIxMTAyMDExMDI0OFoXDTIyMTAyMDExMDI0OFowgY4xCzAJBgNVBAYT\\r\\nAklOMQswCQYDVQQIDAJBUDEMMAoGA1UEBwwDR05UMRswGQYDVQQKDBJaZWJyYSBU\\r\\nZWNobm9sb2dpZXMxDTALBgNVBAsMBFJGSUQxFTATBgNVBAMMDEZYOTYwMEVFNTcy\\r\\nOTEhMB8GCSqGSIb3DQEJARYScmJhY2hpbmFAemVicmEuY29tMIIBIjANBgkqhkiG\\r\\n9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvRrePi7eMzHQ3J9krAHkt+3bryChYSmVdqeS\\r\\nahs4IFyL+PflGkJ/3cGBX7C5RFUdRLl5VgVtupwc+eeCzmIiThWAerMSbR7PLnmw\\r\\nO2Lb+cnE/71OiwAguD19dXgETG6Ys6ESShrKumBTqX1eFDKETl7iN9S/2+BJemQC\\r\\nDAoSO2rNeXMw90nJdbLP0N2+cMbK7kPn0ZLXIEsa1N5l4cxW+75xjiLAOhJ2QPPF\\r\\n6syvS6IrxpfIal5su0j3LgcnbiPgeH/XvUIKRP+MqWLWWij5V/wDW0IIS7GUW1Lw\\r\\nsTvJndGVO+/aU4T1ZDe7MJUrzysMLYhsLPIlt76mG6ApDNcfSQIDAQABo1MwUTAd\\r\\nBgNVHQ4EFgQUK1iuGILy0AjRyvVhFUiy7g9ROTEwHwYDVR0jBBgwFoAUK1iuGILy\\r\\n0AjRyvVhFUiy7g9ROTEwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOC\\r\\nAQEAZSfAlpb4/0viL072E1ADs8Jj44tjZp//qEQTX34IAXPaNOsAi66UYoPoOu2n\\r\\ns21A1gMKU+qG58Neb65Bihry/Z3EAE1xdxehkbfB6lzt5lTQEQSaTAIch5124PxX\\r\\nvysytt5APdsl3Oqg1PJwNurAaspYCBLuf4OcerK50rmn+BEZVoX3qNMgobOCDxxc\\r\\ndUYQvxa4lGhcVsMUG04kg1fM5LU1su6lMUz/MaknucQA54Jj6u3q3TMt6ozS6IX5\\r\\nFzTYm+5VnZA3zijlNrimVq+LBz0ddCCLYe3h4ZNFRpta9xHA4gUmOf4gZFJwA8BM\\r\\nO3zE3CntGDvV5zba49dTFCzh9g==\\r\\n-----END CERTIFICATE-----\\r\\n\",\n                \"certAlgorithm\": \"RS256\",\n                \"certFormat\": \"PEM\",\n                \"privateKeyContent\": \"-----BEGIN PRIVATE KEY-----\\r\\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC9Gt4+Lt4zMdDc\\r\\nn2SsAeS37duvIKFhKZV2p5JqGzggXIv49+UaQn/dwYFfsLlEVR1EuXlWBW26nBz5\\r\\n54LOYiJOFYB6sxJtHs8uebA7Ytv5ycT/vU6LACC4PX11eARMbpizoRJKGsq6YFOp\\r\\nfV4UMoROXuI31L/b4El6ZAIMChI7as15czD3Scl1ss/Q3b5wxsruQ+fRktcgSxrU\\r\\n3mXhzFb7vnGOIsA6EnZA88XqzK9LoivGl8hqXmy7SPcuByduI+B4f9e9QgpE/4yp\\r\\nYtZaKPlX/ANbQghLsZRbUvCxO8md0ZU779pThPVkN7swlSvPKwwtiGws8iW3vqYb\\r\\noCkM1x9JAgMBAAECggEBAIqh4N27ZEApvBGRdK848CD66jt383cUkjMbZBYPgFUR\\r\\nI7hQm49lwvGiQ6MQHrH+p+dTBaXPcwMEIaX/WADPJpER6E+Lae2/UWmj4lOXBOcZ\\r\\nSSem86apYFNRGOF+K8CQr7e4VH0pKQf7SDoP42FxK1d87eC6QjECOzvTh0CmPXl6\\r\\nbJqhD11e3/P4lUbDjgsjEvVkQC75yQz+lVe3zpn10evtiqt3HGho+gPWI4DtB4rG\\r\\nm1hDjd8CAc13OobRglwn9bLc0SJY5MpPPt09o+nVqKpFgP2DwQlEU8VDFxAXpvCE\\r\\nPWWOfE6CTpeIM+pcUpuL+F8aOnxEqm5+XFvsnjwsmQECgYEA+a07Z1cV/pUd/B3+\\r\\nzGpKHlIuN8VkPjtZL6zWi8sbRM71Fq5CzTFIVBgQ29Xe9mAI3qmv7gxQMSbl9o6o\\r\\nCoOYz0H/7PXks/L48TRZkMbmUdD/6hmv3IdvzXzswU6XKa6oiNy0UFNg2BxZqviq\\r\\nA7UIVMf2Po9Fb71HwtdK59VDOyECgYEAweTsAK/BJBMQgyi2mwf9LWHrYgjAMEjD\\r\\nQE6TN90BPeaP2S7HKv1hKxHXKz3dBrL37TFfUwOTY4+bZyZx2LBIDw+p+/5mnlDa\\r\\nd2RzpVl+KJtNAhEuLSr5hjz6V9epA98jF3ozLfxKbg8nWNBkncS63LishLMau2LD\\r\\nLKL5n1qcxykCgYBVR79fl9ZSY7qfL9ulFLUGUEmrEQghXYIkD6QkkZZZ1VrPiWwV\\r\\nzDyJRMMVY6LJgpnk/A60f44wi7nGkomBNdvPBxsUZBTfBiHTuW7STa3DymBvJKD1\\r\\n8WjVxlLT4DUvrpGwVbpdKW2Nw3k5NcBUjdQvqTFJwwQTm5JUUdcrAqP5IQKBgQCH\\r\\nB+9X1w6SGfjQ7uSk+R5Xoa70mhWGStY3jcE3EWHRAyXA4bPw+37VKNqJkc7A4JiL\\r\\nBmxVetMFbjiS0JJOjw3P91+xUA2VSceriDiFudqDWwx5WQ+ogxo9Y3ARBu789EQT\\r\\nEJZd+yq2lTUYxCCeQyjDmJUE4VrHj1NPXbysPsWaaQKBgQDH7RxASu1a5fn4+gh2\\r\\nrO7dg3pYzswy9DN68jl4HW9wPgnMrfCMtSEd8nFvR6vXZ6s8bBp1JXFhePsEbDn7\\r\\nMmO1cqsad2BVBjW1Io62CcSZ2sPWHCsjbSUDZLZcQ4d1W4WfGZE2KVlRkID4imhG\\r\\n5OcZPj+ZDKw1kttNX5HFHrvmMQ==\\r\\n-----END PRIVATE KEY-----\\r\\n\",\n                \"CACertificateContent\": \"-----BEGIN CERTIFICATE-----\\r\\nMIIDdzCCAl+gAwIBAgIEAgAAuTANBgkqhkiG9w0BAQUFADBaMQswCQYDVQQGEwJJ\\r\\nRTESMBAGA1UEChMJQmFsdGltb3JlMRMwEQYDVQQLEwpDeWJlclRydXN0MSIwIAYD\\r\\nVQQDExlCYWx0aW1vcmUgQ3liZXJUcnVzdCBSb290MB4XDTAwMDUxMjE4NDYwMFoX\\r\\nDTI1MDUxMjIzNTkwMFowWjELMAkGA1UEBhMCSUUxEjAQBgNVBAoTCUJhbHRpbW9y\\r\\nZTETMBEGA1UECxMKQ3liZXJUcnVzdDEiMCAGA1UEAxMZQmFsdGltb3JlIEN5YmVy\\r\\nVHJ1c3QgUm9vdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKMEuyKr\\r\\nmD1X6CZymrV51Cni4eiVgLGw41uOKymaZN+hXe2wCQVt2yguzmKiYv60iNoS6zjr\\r\\nIZ3AQSsBUnuId9Mcj8e6uYi1agnnc+gRQKfRzMpijS3ljwumUNKoUMMo6vWrJYeK\\r\\nmpYcqWe4PwzV9/lSEy/CG9VwcPCPwBLKBsua4dnKM3p31vjsufFoREJIE9LAwqSu\\r\\nXmD+tqYF/LTdB1kC1FkYmGP1pWPgkAx9XbIGevOF6uvUA65ehD5f/xXtabz5OTZy\\r\\ndc93Uk3zyZAsuT3lySNTPx8kmCFcB5kpvcY67Oduhjprl3RjM71oGDHweI12v/ye\\r\\njl0qhqdNkNwnGjkCAwEAAaNFMEMwHQYDVR0OBBYEFOWdWTCCR1jMrPoIVDaGezq1\\r\\nBE3wMBIGA1UdEwEB/wQIMAYBAf8CAQMwDgYDVR0PAQH/BAQDAgEGMA0GCSqGSIb3\\r\\nDQEBBQUAA4IBAQCFDF2O5G9RaEIFoN27TyclhAO992T9Ldcw46QQF+vaKSm2eT92\\r\\n9hkTI7gQCvlYpNRhcL0EYWoSihfVCr3FvDB81ukMJY2GQE/szKN+OMY3EU/t3Wgx\\r\\njkzSswF07r51XgdIGn9w/xZchMB5hbgF/X++ZRGjD8ACtPhSNzkE1akxehi/oCr0\\r\\nEpn3o0WC4zxe9Z2etciefC7IpJ5OCBRLbf1wbWsaY71k5h+3zvDyny67G7fyUIhz\\r\\nksLi4xaNmjICq44Y3ekQEe5+NauQrz4wlHrQMz2nZQ/1/I6eYs9HRCwBXbsdtTLS\\r\\nR9I4LtD+gdwyah617jzV/OeBHRnDJELqYzmp\\r\\n-----END CERTIFICATE-----\\r\\n\\r\\n/* DigiCert Global Root G2 */\\r\\n-----BEGIN CERTIFICATE-----\\r\\nMIIDjjCCAnagAwIBAgIQAzrx5qcRqaC7KGSxHQn65TANBgkqhkiG9w0BAQsFADBh\\r\\nMQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\\r\\nd3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBH\\r\\nMjAeFw0xMzA4MDExMjAwMDBaFw0zODAxMTUxMjAwMDBaMGExCzAJBgNVBAYTAlVT\\r\\nMRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5j\\r\\nb20xIDAeBgNVBAMTF0RpZ2lDZXJ0IEdsb2JhbCBSb290IEcyMIIBIjANBgkqhkiG\\r\\n9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuzfNNNx7a8myaJCtSnX/RrohCgiN9RlUyfuI\\r\\n2/Ou8jqJkTx65qsGGmvPrC3oXgkkRLpimn7Wo6h+4FR1IAWsULecYxpsMNzaHxmx\\r\\n1x7e/dfgy5SDN67sH0NO3Xss0r0upS/kqbitOtSZpLYl6ZtrAGCSYP9PIUkY92eQ\\r\\nq2EGnI/yuum06ZIya7XzV+hdG82MHauVBJVJ8zUtluNJbd134/tJS7SsVQepj5Wz\\r\\ntCO7TG1F8PapspUwtP1MVYwnSlcUfIKdzXOS0xZKBgyMUNGPHgm+F6HmIcr9g+UQ\\r\\nvIOlCsRnKPZzFBQ9RnbDhxSJITRNrw9FDKZJobq7nMWxM4MphQIDAQABo0IwQDAP\\r\\nBgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV\\r\\n5uNu5g/6+rkS7QYXjzkwDQYJKoZIhvcNAQELBQADggEBAGBnKJRvDkhj6zHd6mcY\\r\\n1Yl9PMWLSn/pvtsrF9+wX3N3KjITOYFnQoQj8kVnNeyIv/iPsGEMNKSuIEyExtv4\\r\\nNeF22d+mQrvHRAiGfzZ0JFrabA0UWTW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG\\r\\nFdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFXGU7Aj64GxJUTFy8bJZ91\\r\\n8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6LJ3/iyK5S9kJRaTe\\r\\npLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6LZZm6zNTfl\\r\\nMrY=\\r\\n-----END CERTIFICATE-----\\r\\n\\r\\n/* Microsoft RSA Root Certificate Authority 2017 */\\r\\n-----BEGIN CERTIFICATE-----\\r\\nMIIFqDCCA5CgAwIBAgIQHtOXCV/YtLNHcB6qvn9FszANBgkqhkiG9w0BAQwFADBl\\r\\nMQswCQYDVQQGEwJVUzEeMBwGA1UEChMVTWljcm9zb2Z0IENvcnBvcmF0aW9uMTYw\\r\\nNAYDVQQDEy1NaWNyb3NvZnQgUlNBIFJvb3QgQ2VydGlmaWNhdGUgQXV0aG9yaXR5\\r\\nIDIwMTcwHhcNMTkxMjE4MjI1MTIyWhcNNDIwNzE4MjMwMDIzWjBlMQswCQYDVQQG\\r\\nEwJVUzEeMBwGA1UEChMVTWljcm9zb2Z0IENvcnBvcmF0aW9uMTYwNAYDVQQDEy1N\\r\\naWNyb3NvZnQgUlNBIFJvb3QgQ2VydGlmaWNhdGUgQXV0aG9yaXR5IDIwMTcwggIi\\r\\nMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDKW76UM4wplZEWCpW9R2LBifOZ\\r\\nNt9GkMml7Xhqb0eRaPgnZ1AzHaGm++DlQ6OEAlcBXZxIQIJTELy/xztokLaCLeX0\\r\\nZdDMbRnMlfl7rEqUrQ7eS0MdhweSE5CAg2Q1OQT85elss7YfUJQ4ZVBcF0a5toW1\\r\\nHLUX6NZFndiyJrDKxHBKrmCk3bPZ7Pw71VdyvD/IybLeS2v4I2wDwAW9lcfNcztm\\r\\ngGTjGqwu+UcF8ga2m3P1eDNbx6H7JyqhtJqRjJHTOoI+dkC0zVJhUXAoP8XFWvLJ\\r\\njEm7FFtNyP9nTUwSlq31/niol4fX/V4ggNyhSyL71Imtus5Hl0dVe49FyGcohJUc\\r\\naDDv70ngNXtk55iwlNpNhTs+VcQor1fznhPbRiefHqJeRIOkpcrVE7NLP8TjwuaG\\r\\nYaRSMLl6IE9vDzhTyzMMEyuP1pq9KsgtsRx9S1HKR9FIJ3Jdh+vVReZIZZ2vUpC6\\r\\nW6IYZVcSn2i51BVrlMRpIpj0M+Dt+VGOQVDJNE92kKz8OMHY4Xu54+OU4UZpyw4K\\r\\nUGsTuqwPN1q3ErWQgR5WrlcihtnJ0tHXUeOrO8ZV/R4O03QK0dqq6mm4lyiPSMQH\\r\\n+FJDOvTKVTUssKZqwJz58oHhEmrARdlns87/I6KJClTUFLkqqNfs+avNJVgyeY+Q\\r\\nW5g5xAgGwax/Dj0ApQIDAQABo1QwUjAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/\\r\\nBAUwAwEB/zAdBgNVHQ4EFgQUCctZf4aycI8awznjwNnpv7tNsiMwEAYJKwYBBAGC\\r\\nNxUBBAMCAQAwDQYJKoZIhvcNAQEMBQADggIBAKyvPl3CEZaJjqPnktaXFbgToqZC\\r\\nLgLNFgVZJ8og6Lq46BrsTaiXVq5lQ7GPAJtSzVXNUzltYkyLDVt8LkS/gxCP81OC\\r\\ngMNPOsduET/m4xaRhPtthH80dK2Jp86519efhGSSvpWhrQlTM93uCupKUY5vVau6\\r\\ntZRGrox/2KJQJWVggEbbMwSubLWYdFQl3JPk+ONVFT24bcMKpBLBaYVu32TxU5nh\\r\\nSnUgnZUP5NbcA/FZGOhHibJXWpS2qdgXKxdJ5XbLwVaZOjex/2kskZGT4d9Mozd2\\r\\nTaGf+G0eHdP67Pv0RR0Tbc/3WeUiJ3IrhvNXuzDtJE3cfVa7o7P4NHmJweDyAmH3\\r\\npvwPuxwXC65B2Xy9J6P9LjrRk5Sxcx0ki69bIImtt2dmefU6xqaWM/5TkshGsRGR\\r\\nxpl/j8nWZjEgQRCHLQzWwa80mMpkg/sTV9HB8Dx6jKXB/ZUhoHHBk2dxEuqPiApp\\r\\nGWSZI1b7rCoucL5mxAyE7+WL85MB+GqQk2dLsmijtWKP6T+MejteD+eMuMZ87zf9\\r\\ndOLITzNy4ZQ5bb0Sr74MTnB8G2+NszKTc0QWbej09+CVgI+WXTik9KveCjCHk9hN\\r\\nAHFiRSdLOkKEW39lt2c0Ui2cFmuqqNh7o0JMcccMyj6D5KbvtwEwXlGjefVwaaZB\\r\\nRA+GsCyRxj3qrg+E\\r\\n-----END CERTIFICATE-----\"\n            },\n            \"verifyServerCertificate\": true\n        },\n        \"topics\": {\n            \"tagEvents\": {\n                \"topic\": \"devices/FX9600EE5729/messages/events/\",\n                \"qos\": 0,\n                \"retain\": true\n            },\n            \"managementEvents\": {\n                \"topic\": \"devices/FX9600EE5729/messages/events/\",\n                \"qos\": 0,\n                \"retain\": true\n            },\n            \"management\": {\n                \"command\": {\n                    \"topic\": \"devices/FX9600EE5729/messages/devicebound/#\",\n                    \"qos\": 0,\n                    \"retain\": true\n                },\n                \"response\": {\n                    \"topic\": \"devices/FX9600EE5729/messages/events/\",\n                    \"qos\": 0,\n                    \"retain\": true\n                }\n            },\n            \"control\": {\n                \"command\": {\n                    \"topic\": \"devices/FX9600EE5729/messages/devicebound/#\",\n                    \"qos\": 0,\n                    \"retain\": true\n                },\n                \"response\": {\n                    \"topic\": \"devices/FX9600EE5729/messages/events/\",\n                    \"qos\": 0,\n                    \"retain\": true\n                }\n            }\n        }\n    }\n}</motorm:data>\n    </motorm:manageCloudEndpoints>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD endpoints (HTTP-POST BASIC AUTH)",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:manageCloudEndpoints>\n        <motorm:operation>ADD</motorm:operation>\n        <motorm:data>{\n\t\t\t\"name\": \"HTTP-POST#[10.17.218.55:8001]\",\n\t\t\t\"description\": \"HTTP Server #2\",\n\t\t\t\"type\": \"HTTP-POST\",\n\t\t\t\"configuration\": {\n\t\t\t\t\"url\": \"10.17.218.55:8001\",\n\t\t\t\t\"security\": {\n\t\t\t\t\t\"verifyPeer\": false,\n\t\t\t\t\t\"verifyHost\": false,\n\t\t\t\t\t\"authenticationType\": \"BASIC\",\n\t\t\t\t\t\"authenticationOptions\": {\n\t\t\t\t\t\t\"username\": \"username\",\n\t\t\t\t\t\t\"password\": \"password\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}</motorm:data>\n    </motorm:manageCloudEndpoints>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD endpoints (HTTP-POST TLS AUTH)",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:manageCloudEndpoints>\n        <motorm:operation>ADD</motorm:operation>\n        <motorm:data>{\n\t\t\t\"name\": \"HTTP-POST#[10.17.218.55:8001]\",\n\t\t\t\"description\": \"HTTP Server #2\",\n\t\t\t\"type\": \"HTTP-POST\",\n\t\t\t\"configuration\": {\n\t\t\t\t\"url\": \"10.17.218.55:8001\",\n\t\t\t\t\"security\": {\n\t\t\t\t\t\"verifyPeer\": false,\n\t\t\t\t\t\"verifyHost\": false,\n\t\t\t\t\t\"authenticationType\": \"TLS-Client\",\n                    \"CACertificateFileLocation\": \"/apps/certs_azure/ca.pem\",\n\t\t\t\t\t\"authenticationOptions\": {\n\t\t\t\t\t\t\"useLocalCerts\": true,\n                        \"certificates\": {\n                            \"certificatePath\": \"/apps/certs_azure/mydevkitcertificate.pem\",\n                            \"certAlgorithm\": \"RS256\",\n                            \"certFormat\": \"PEM\",\n                            \"privateKeyPath\": \"/apps/certs_azure/mydevkitkey.pem\",\n                            \"CACertificatePath\": \"/apps/certs_azure/ca.pem\"\n                        },\n                        \"verifyServerCertificate\": true\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}</motorm:data>\n    </motorm:manageCloudEndpoints>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE endpoints (MQTT)",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:manageCloudEndpoints>\n        <motorm:operation>UPDATE</motorm:operation>\n        <motorm:data>{\n    \"name\": \"MQTT #1\",\n    \"description\": \"MQTT Test  Broker Office\",\n    \"type\": \"MQTT\",\n    \"configuration\": {\n        \"endpoint\": {\n            \"hostname\": \"10.17.218.77\",\n            \"port\": 1883,\n            \"protocol\": \"tcp\"\n        },\n        \"additional\": {\n            \"clientId\": \"FX75003A2C38\",\n            \"cleanSession\": true,\n            \"keepAlive\": 20,\n            \"debug\": false\n        },\n        \"topics\": {\n            \"tagEvents\": {\n                \"topic\": \"/tagEvents/FX75003A2C38\",\n                \"qos\": 0,\n                \"retain\": true\n            },\n            \"managementEvents\": {\n                \"topic\": \"/events/FX75003A2C38\",\n                \"qos\": 0,\n                \"retain\": true\n            },\n            \"management\": {\n                \"command\": {\n                    \"topic\": \"/command/FX75003A2C38\",\n                    \"qos\": 0,\n                    \"retain\": true\n                },\n                \"response\": {\n                    \"topic\": \"/response/FX75003A2C38\",\n                    \"qos\": 0,\n                    \"retain\": true\n                }\n            },\n            \"control\": {\n                \"command\": {\n                    \"topic\": \"/command/FX75003A2C38\",\n                    \"qos\": 0,\n                    \"retain\": true\n                },\n                \"response\": {\n                    \"topic\": \"/response/FX75003A2C38\",\n                    \"qos\": 0,\n                    \"retain\": true\n                }\n            }\n        }\n    }\n}</motorm:data>\n    </motorm:manageCloudEndpoints>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE endpoints (HTTP-POST)",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:manageCloudEndpoints>\n        <motorm:operation>UPDATE</motorm:operation>\n        <motorm:data>{\n\t\t\t\"name\": \"HTTP-POST#[10.17.218.55:8001]\",\n\t\t\t\"description\": \"HTTP Server #4\",\n\t\t\t\"type\": \"HTTP-POST\",\n\t\t\t\"configuration\": {\n\t\t\t\t\"url\": \"10.17.218.55:8001\",\n\t\t\t\t\"security\": {\n\t\t\t\t\t\"verifyPeer\": false,\n\t\t\t\t\t\"verifyHost\": false,\n\t\t\t\t\t\"authenticationType\": \"BASIC\",\n\t\t\t\t\t\"authenticationOptions\": {\n\t\t\t\t\t\t\"username\": \"username\",\n\t\t\t\t\t\t\"password\": \"password1\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}</motorm:data>\n    </motorm:manageCloudEndpoints>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE endpoints",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:manageCloudEndpoints>\n        <motorm:operation>DELETE</motorm:operation>\n        <motorm:data>AWS #1</motorm:data>\n    </motorm:manageCloudEndpoints>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "VIEW endpoint mapping",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:cloudEndpointsMapping>\n        <motorm:operation>VIEW</motorm:operation>\n        <motorm:data></motorm:data>\n    </motorm:cloudEndpointsMapping>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE endpoint mapping",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<rm:command epcglobal:creationDate=\"2001-12-17T09:30:47.0Z\"\n            epcglobal:schemaVersion=\"0.0\"\n            xsi:schemaLocation=\"urn:epcglobal:rm:xsd:1 ../../../schemas/RmCommand.xsd\"\n            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n            xmlns:rm=\"urn:epcglobal:rm:xsd:1\"\n            xmlns:epcglobal=\"urn:epcglobal:xsd:1\"\n            xmlns:motorm=\"urn:motorfid:rm:xsd:1\">\n  <rm:id>99</rm:id>\n  <rm:targetName>MyFX7500</rm:targetName>\n  <motorm:readerDevice>\n    <motorm:sessionID>{{sessionID}}</motorm:sessionID>\n    <motorm:cloudEndpointsMapping>\n        <motorm:operation>UPDATE</motorm:operation>\n        <motorm:data>{\n    \"control\": {\n        \"enableLocalRest\": true,\n        \"endpoints\": []\n    },\n    \"management\": {\n        \"enableLocalRest\": true,\n        \"endpoints\": []\n    },\n    \"data\": [\"WS Test\"],\n    \"event\": []\n}</motorm:data>\n    </motorm:cloudEndpointsMapping>\n  </motorm:readerDevice>\n</rm:command>",
+					"options": {
+						"raw": {
+							"language": "xml"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{reader-ip}}/control",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{reader-ip}}"
+					],
+					"path": [
+						"control"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "reader-ip",
+			"value": "10.17.231.74",
+			"type": "default"
+		},
+		{
+			"key": "protocol",
+			"value": "https",
+			"type": "default"
+		},
+		{
+			"key": "sessionID",
+			"value": ""
+		}
+	]
+}

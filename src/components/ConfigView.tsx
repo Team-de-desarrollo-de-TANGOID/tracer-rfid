@@ -1,16 +1,12 @@
-import { useState } from 'react';
-import { Trash2, Package, Tags, MapPin, Pencil } from 'lucide-react';
-import { api } from '../api/client';
-import CollapsibleAddForm from './CollapsibleAddForm';
-import PropiedadesActivosSection from './PropiedadesActivosSection';
+import { useEffect, useMemo, useState } from 'react';
+import { Package, Radio } from 'lucide-react';
+import ConfigActivosTab from './ConfigActivosTab';
+import Fx9600ConnectionPanel from './Fx9600ConnectionPanel';
+import MonitorView from './MonitorView';
 import type { Estado, Sku, Ubicacion } from '../types';
-import {
-  TIPO_OPERATIVO,
-  estadoEstaDeshabilitado,
-  estadoEstaHabilitado,
-  labelTipoOperativo,
-  tipoOperativoFromEstado,
-} from '../utils/estadoOperativo';
+
+type MainTab = 'activos' | 'lector';
+type LectorSubTab = 'conexion' | 'monitorear';
 
 interface Props {
   estados: Estado[];
@@ -18,7 +14,64 @@ interface Props {
   ubicaciones: Ubicacion[];
   onRefresh: () => void;
   onRefreshColumnas: () => Promise<void>;
-  permissions: { sku: boolean; estados: boolean; ubicaciones: boolean; propiedades: boolean };
+  initialLectorTab?: 'conexion' | 'monitorear' | null;
+  onLectorTabConsumed?: () => void;
+  permissions: {
+    sku: boolean;
+    estados: boolean;
+    ubicaciones: boolean;
+    propiedades: boolean;
+    syncConfig: boolean;
+    syncMonitor: boolean;
+  };
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: import('react').ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+        active
+          ? 'bg-blue-600 text-white shadow-sm'
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SubTabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: import('react').ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+        active
+          ? 'bg-white text-blue-700 shadow-sm border border-slate-200'
+          : 'text-slate-500 hover:text-slate-800'
+      }`}
+    >
+      {children}
+    </button>
+  );
 }
 
 export default function ConfigView({
@@ -27,498 +80,136 @@ export default function ConfigView({
   ubicaciones,
   onRefresh,
   onRefreshColumnas,
+  initialLectorTab,
+  onLectorTabConsumed,
   permissions,
 }: Props) {
-  const [newSku, setNewSku] = useState('');
-  const [newSkuDesc, setNewSkuDesc] = useState('');
-  const [newEstado, setNewEstado] = useState('');
-  const [newUbicacion, setNewUbicacion] = useState('');
-  const [newUbicacionDesc, setNewUbicacionDesc] = useState('');
-  const [editingEstado, setEditingEstado] = useState<Estado | null>(null);
-  const [editingUbicacion, setEditingUbicacion] = useState<Ubicacion | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const showActivos =
+    permissions.sku ||
+    permissions.estados ||
+    permissions.ubicaciones ||
+    permissions.propiedades;
+  const showLector = permissions.syncConfig || permissions.syncMonitor;
+
+  const defaultTab = useMemo<MainTab>(() => {
+    if (showActivos) return 'activos';
+    if (showLector) return 'lector';
+    return 'activos';
+  }, [showActivos, showLector]);
+
+  const [mainTab, setMainTab] = useState<MainTab>(defaultTab);
+  const [lectorTab, setLectorTab] = useState<LectorSubTab>(
+    permissions.syncConfig ? 'conexion' : 'monitorear'
+  );
+
+  useEffect(() => {
+    if (!initialLectorTab) return;
+    setMainTab('lector');
+    setLectorTab(initialLectorTab);
+    onLectorTabConsumed?.();
+  }, [initialLectorTab, onLectorTabConsumed]);
 
   const flash = (text: string) => {
     setMsg(text);
     setTimeout(() => setMsg(null), 2500);
   };
 
-  const addSku = async (close: () => void) => {
-    if (!newSku.trim()) return;
-    try {
-      await api.createSku(newSku, newSkuDesc);
-      setNewSku('');
-      setNewSkuDesc('');
-      flash('SKU agregado');
-      onRefresh();
-      close();
-    } catch (e) {
-      flash(e instanceof Error ? e.message : 'Error');
-    }
-  };
-
-  const addEstado = async (close: () => void) => {
-    if (!newEstado.trim()) return;
-    try {
-      await api.createEstado({
-        nombre: newEstado,
-        tipoOperativo: TIPO_OPERATIVO.HABILITADO,
-        permiteSalida: false,
-      });
-      setNewEstado('');
-      flash('Estado agregado');
-      onRefresh();
-      close();
-    } catch (e) {
-      flash(e instanceof Error ? e.message : 'Error');
-    }
-  };
-
-  const saveEstado = async () => {
-    if (!editingEstado) return;
-    try {
-      await api.updateEstado(editingEstado.id, {
-        nombre: editingEstado.nombre,
-        color: editingEstado.color,
-        tipoOperativo: tipoOperativoFromEstado(editingEstado),
-        permiteSalida: Boolean(editingEstado.permite_salida ?? editingEstado.permiteSalida),
-        orden: editingEstado.orden,
-      });
-      setEditingEstado(null);
-      flash('Estado actualizado');
-      onRefresh();
-    } catch (e) {
-      flash(e instanceof Error ? e.message : 'Error');
-    }
-  };
-
-  const removeEstado = async (id: number) => {
-    try {
-      await api.deleteEstado(id);
-      onRefresh();
-    } catch (e) {
-      flash(e instanceof Error ? e.message : 'Error');
-    }
-  };
-
-  const addUbicacion = async (close: () => void) => {
-    if (!newUbicacion.trim()) return;
-    try {
-      await api.createUbicacion(newUbicacion, undefined, newUbicacionDesc);
-      setNewUbicacion('');
-      setNewUbicacionDesc('');
-      flash('Ubicación agregada');
-      onRefresh();
-      close();
-    } catch (e) {
-      flash(e instanceof Error ? e.message : 'Error');
-    }
-  };
-
-  const saveUbicacion = async () => {
-    if (!editingUbicacion) return;
-    try {
-      await api.updateUbicacion(editingUbicacion.id, {
-        nombre: editingUbicacion.nombre,
-        tipo: editingUbicacion.tipo,
-        descripcion: editingUbicacion.descripcion,
-        activo: editingUbicacion.activo,
-      });
-      setEditingUbicacion(null);
-      flash('Ubicación actualizada');
-      onRefresh();
-    } catch (e) {
-      flash(e instanceof Error ? e.message : 'Error');
-    }
-  };
-
-  const removeUbicacion = async (id: number) => {
-    try {
-      await api.deleteUbicacion(id);
-      onRefresh();
-    } catch (e) {
-      flash(e instanceof Error ? e.message : 'Error');
-    }
-  };
-
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[#f8fafc]">
-      <header className="px-8 py-6 bg-white border-b border-[#e2e8f0]">
+      <header className="px-8 py-6 bg-white border-b border-[#e2e8f0] shrink-0">
         <h1 className="text-2xl font-bold text-[#0f172a] m-0">Configuración</h1>
         <p className="text-[13px] text-[#64748b] mt-1 m-0">
-          Catálogos personalizables del sistema.
+          Catálogos del sistema y lector de puerta Zebra FX9600.
         </p>
+
+        <div className="flex flex-wrap gap-2 mt-4">
+          {showActivos && (
+            <TabButton active={mainTab === 'activos'} onClick={() => setMainTab('activos')}>
+              <span className="inline-flex items-center gap-1.5">
+                <Package size={16} />
+                Activos
+              </span>
+            </TabButton>
+          )}
+          {showLector && (
+            <TabButton active={mainTab === 'lector'} onClick={() => setMainTab('lector')}>
+              <span className="inline-flex items-center gap-1.5">
+                <Radio size={16} />
+                Lector Zebra FX9600
+              </span>
+            </TabButton>
+          )}
+        </div>
+
+        {mainTab === 'lector' && showLector && (
+          <div className="flex gap-1 mt-3 p-1 bg-slate-100 rounded-lg w-fit">
+            {permissions.syncConfig && (
+              <SubTabButton
+                active={lectorTab === 'conexion'}
+                onClick={() => setLectorTab('conexion')}
+              >
+                Conexión
+              </SubTabButton>
+            )}
+            {permissions.syncMonitor && (
+              <SubTabButton
+                active={lectorTab === 'monitorear'}
+                onClick={() => setLectorTab('monitorear')}
+              >
+                Monitorear
+              </SubTabButton>
+            )}
+          </div>
+        )}
       </header>
 
       {msg && (
-        <div className="mx-8 mt-4 px-4 py-2 bg-blue-50 text-blue-800 text-sm rounded-lg border border-blue-200">
+        <div className="mx-8 mt-4 px-4 py-2 bg-blue-50 text-blue-800 text-sm rounded-lg border border-blue-200 shrink-0">
           {msg}
         </div>
       )}
 
-      <div className="p-8 grid md:grid-cols-2 gap-8 overflow-y-auto">
-        {permissions.sku && (
-          <section className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 font-bold text-[#0f172a] mb-4">
-              <Package size={18} />
-              Catálogo SKU
-            </div>
-            <ul className="space-y-2 mb-4 max-h-48 overflow-y-auto">
-              {skus.map((s) => (
-                <li key={s.id} className="text-sm flex justify-between border-b border-slate-50 pb-1">
-                  <span className="font-mono font-semibold text-slate-800">{s.codigo}</span>
-                  <span className="text-slate-500 text-xs">{s.descripcion}</span>
-                </li>
-              ))}
-            </ul>
-            <CollapsibleAddForm>
-              {(close) => (
-                <>
-                  <div className="flex gap-2 flex-wrap">
-                    <input
-                      placeholder="Código SKU"
-                      value={newSku}
-                      onChange={(e) => setNewSku(e.target.value)}
-                      className="flex-1 min-w-[120px] py-2 px-3 border rounded-lg text-sm bg-white"
-                    />
-                    <input
-                      placeholder="Descripción"
-                      value={newSkuDesc}
-                      onChange={(e) => setNewSkuDesc(e.target.value)}
-                      className="flex-1 min-w-[120px] py-2 px-3 border rounded-lg text-sm bg-white"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => addSku(close)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold cursor-pointer"
-                  >
-                    Guardar SKU
-                  </button>
-                </>
-              )}
-            </CollapsibleAddForm>
-          </section>
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        {mainTab === 'activos' && showActivos && (
+          <div className="p-8 overflow-y-auto flex-1">
+            <ConfigActivosTab
+              estados={estados}
+              skus={skus}
+              ubicaciones={ubicaciones}
+              onRefresh={onRefresh}
+              onRefreshColumnas={onRefreshColumnas}
+              permissions={{
+                sku: permissions.sku,
+                estados: permissions.estados,
+                ubicaciones: permissions.ubicaciones,
+                propiedades: permissions.propiedades,
+              }}
+              onFlash={flash}
+            />
+          </div>
         )}
 
-        {permissions.estados && (
-          <section className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 font-bold text-[#0f172a] mb-4">
-              <Tags size={18} />
-              Estados de activos
-            </div>
-            <ul className="space-y-2 mb-4">
-              {estados.map((e) => (
-                <li
-                  key={e.id}
-                  className="flex items-center justify-between text-sm border-b border-slate-50 pb-2"
-                >
-                  <div>
-                    <span
-                      className="px-2 py-0.5 rounded-full text-xs font-bold"
-                      style={{ backgroundColor: `${e.color}22`, color: e.color }}
-                    >
-                      {e.nombre}
-                    </span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                        estadoEstaHabilitado(e)
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-slate-100 text-slate-500'
-                      }`}
-                    >
-                      {labelTipoOperativo(tipoOperativoFromEstado(e))}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {(e.permite_salida ?? e.permiteSalida) ? ' · permite salida' : ''}
-                    </span>
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setEditingEstado({ ...e })}
-                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    {!(e.es_sistema ?? e.esSistema) && (
-                      <button
-                        type="button"
-                        onClick={() => removeEstado(e.id)}
-                        className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <CollapsibleAddForm>
-              {(close) => (
-                <>
-                  <input
-                    placeholder="Nuevo estado"
-                    value={newEstado}
-                    onChange={(e) => setNewEstado(e.target.value)}
-                    className="w-full py-2 px-3 border rounded-lg text-sm bg-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => addEstado(close)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold cursor-pointer"
-                  >
-                    Guardar estado
-                  </button>
-                </>
-              )}
-            </CollapsibleAddForm>
-          </section>
+        {mainTab === 'lector' && showLector && (
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            {lectorTab === 'conexion' && permissions.syncConfig && (
+              <div className="p-8 overflow-y-auto flex-1">
+                <Fx9600ConnectionPanel canEdit={permissions.syncConfig} />
+              </div>
+            )}
+            {lectorTab === 'monitorear' && permissions.syncMonitor && (
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <MonitorView embedded />
+              </div>
+            )}
+          </div>
         )}
 
-        {permissions.ubicaciones && (
-          <section className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-sm md:col-span-2">
-            <div className="flex items-center gap-2 font-bold text-[#0f172a] mb-4">
-              <MapPin size={18} />
-              Ubicaciones
-            </div>
-            <ul className="space-y-2 mb-4">
-              {ubicaciones.map((u) => (
-                <li
-                  key={u.id}
-                  className="flex items-center justify-between text-sm border-b border-slate-50 pb-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                          u.activo ? 'bg-slate-100 text-slate-700' : 'bg-slate-50 text-slate-400 line-through'
-                        }`}
-                      >
-                        {u.nombre}
-                      </span>
-                      <span className="text-[10px] text-slate-400">{u.tipo}</span>
-                    </div>
-                    {u.descripcion && (
-                      <p className="text-xs text-slate-500 m-0 mt-0.5 truncate">{u.descripcion}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setEditingUbicacion({ ...u })}
-                      className="p-1 text-slate-400 hover:text-blue-600 cursor-pointer"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeUbicacion(u.id)}
-                      className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <CollapsibleAddForm>
-              {(close) => (
-                <>
-                  <div className="flex gap-2 flex-wrap">
-                    <input
-                      placeholder="Nombre"
-                      value={newUbicacion}
-                      onChange={(e) => setNewUbicacion(e.target.value)}
-                      className="flex-1 min-w-[140px] py-2 px-3 border rounded-lg text-sm bg-white"
-                    />
-                    <input
-                      placeholder="Descripción breve"
-                      value={newUbicacionDesc}
-                      onChange={(e) => setNewUbicacionDesc(e.target.value)}
-                      className="flex-1 min-w-[160px] py-2 px-3 border rounded-lg text-sm bg-white"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => addUbicacion(close)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold cursor-pointer"
-                  >
-                    Guardar ubicación
-                  </button>
-                </>
-              )}
-            </CollapsibleAddForm>
-          </section>
-        )}
-
-        {permissions.propiedades && (
-          <PropiedadesActivosSection
-            onFlash={flash}
-            onChanged={async () => {
-              await onRefreshColumnas();
-            }}
-          />
+        {!showActivos && !showLector && (
+          <p className="p-8 text-sm text-slate-500">No tiene permisos de configuración.</p>
         )}
       </div>
-
-      {editingEstado && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-            <h2 className="font-bold text-slate-800 m-0">Editar estado</h2>
-            <input
-              value={editingEstado.nombre}
-              onChange={(e) => setEditingEstado({ ...editingEstado, nombre: e.target.value })}
-              className="w-full py-2 px-3 border rounded-lg text-sm"
-            />
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-slate-600">Color</label>
-              <input
-                type="color"
-                value={editingEstado.color}
-                onChange={(e) => setEditingEstado({ ...editingEstado, color: e.target.value })}
-                className="cursor-pointer"
-              />
-            </div>
-            <div>
-              <span className="block text-sm font-semibold text-slate-700 mb-2">Tipo operativo</span>
-              <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="radio"
-                    name="tipoOperativo"
-                    checked={estadoEstaHabilitado(editingEstado)}
-                    onChange={() =>
-                      setEditingEstado({
-                        ...editingEstado,
-                        tipoOperativo: TIPO_OPERATIVO.HABILITADO,
-                        es_activo: 1,
-                        esActivo: true,
-                      })
-                    }
-                  />
-                  <span>
-                    <strong>Habilitada</strong>
-                    <span className="text-slate-500 text-xs block">
-                      El activo se considera operativo en inventario y sincronización.
-                    </span>
-                  </span>
-                </label>
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="radio"
-                    name="tipoOperativo"
-                    checked={estadoEstaDeshabilitado(editingEstado)}
-                    onChange={() =>
-                      setEditingEstado({
-                        ...editingEstado,
-                        tipoOperativo: TIPO_OPERATIVO.DESHABILITADO,
-                        es_activo: 0,
-                        esActivo: false,
-                      })
-                    }
-                  />
-                  <span>
-                    <strong>Deshabilitada</strong>
-                    <span className="text-slate-500 text-xs block">
-                      El activo se considera desactivado (ej. baja, fuera de servicio).
-                    </span>
-                  </span>
-                </label>
-              </div>
-            </div>
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={Boolean(editingEstado.permite_salida ?? editingEstado.permiteSalida)}
-                onChange={(e) =>
-                  setEditingEstado({ ...editingEstado, permite_salida: e.target.checked ? 1 : 0 })
-                }
-              />
-              Permite salida por puerta (autorizada)
-            </label>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setEditingEstado(null)}
-                className="px-4 py-2 text-sm cursor-pointer text-slate-600"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={saveEstado}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg cursor-pointer"
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {editingUbicacion && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-            <h2 className="font-bold text-slate-800 m-0">Editar ubicación</h2>
-            <input
-              value={editingUbicacion.nombre}
-              onChange={(e) =>
-                setEditingUbicacion({ ...editingUbicacion, nombre: e.target.value })
-              }
-              placeholder="Nombre"
-              className="w-full py-2 px-3 border rounded-lg text-sm"
-            />
-            <textarea
-              value={editingUbicacion.descripcion}
-              onChange={(e) =>
-                setEditingUbicacion({ ...editingUbicacion, descripcion: e.target.value })
-              }
-              placeholder="Descripción breve"
-              rows={2}
-              className="w-full py-2 px-3 border rounded-lg text-sm resize-none"
-            />
-            <select
-              value={editingUbicacion.tipo}
-              onChange={(e) =>
-                setEditingUbicacion({ ...editingUbicacion, tipo: e.target.value })
-              }
-              className="w-full py-2 px-3 border rounded-lg text-sm"
-            >
-              <option value="general">General</option>
-              <option value="almacen">Almacén</option>
-              <option value="vestuario">Vestuario</option>
-              <option value="cancha">Cancha</option>
-              <option value="lavanderia">Lavandería</option>
-            </select>
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={editingUbicacion.activo}
-                onChange={(e) =>
-                  setEditingUbicacion({ ...editingUbicacion, activo: e.target.checked })
-                }
-              />
-              Activa (disponible en altas e inventario)
-            </label>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setEditingUbicacion(null)}
-                className="px-4 py-2 text-sm cursor-pointer text-slate-600"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={saveUbicacion}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg cursor-pointer"
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

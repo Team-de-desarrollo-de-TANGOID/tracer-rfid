@@ -7,6 +7,8 @@ import { up as migration003 } from './migrations/003_tid_labels.js';
 import { up as migration004 } from './migrations/004_edicion_rapida_permiso.js';
 import { up as migration005 } from './migrations/005_propiedades_activos.js';
 import { up as migration006 } from './migrations/006_auditoria_historial.js';
+import { up as migration007 } from './migrations/007_fx9600_config.js';
+import { up as migration008 } from './migrations/008_user_app_api.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +28,8 @@ export function runMigrations(db) {
     { name: '004_edicion_rapida_permiso', up: migration004 },
     { name: '005_propiedades_activos', up: migration005 },
     { name: '006_auditoria_historial', up: migration006 },
+    { name: '007_fx9600_config', up: migration007 },
+    { name: '008_user_app_api', up: migration008 },
   ];
 
   for (const m of migrations) {

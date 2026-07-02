@@ -32,6 +32,7 @@ import type {
   ColumnaTabla,
   Estado,
   EventoActivo,
+  FxMonitorSnapshot,
   InventarioColumnasConfig,
   Permiso,
   Rol,
@@ -294,12 +295,132 @@ export const api = {
     }>('/api/mock/audit', { method: 'POST', body: JSON.stringify({ count }) }),
 
   sync: () =>
-    request<{ total: number; mensaje: string; modo: string; version: number }>('/api/sync', {
-      method: 'POST',
-    }),
+    request<{
+      total: number;
+      mensaje: string;
+      modo: string;
+      version: number;
+      warning?: boolean;
+      inventoryWarning?: string;
+    }>('/api/sync', { method: 'POST' }),
   syncHistory: () =>
     request<{ id: number; fecha: string; total_enviados: number; mensaje: string }[]>(
       '/api/sync/history'
     ),
+  syncStatus: () =>
+    request<{
+      demo: boolean;
+      connected: boolean;
+      appOk?: boolean;
+      appError?: string;
+      appStatus?: { count?: number; version?: number; pid?: number };
+      error?: string;
+      config?: Record<string, string | number>;
+    }>('/api/sync/status'),
+  syncProbe: (body?: { ip?: string; appPort?: number; user?: string; password?: string }) =>
+    request<{
+      ok: boolean;
+      ip: string;
+      appPort?: number;
+      message?: string;
+      error?: string;
+    }>('/api/sync/probe', { method: 'POST', body: JSON.stringify(body ?? {}) }),
+  syncConfig: (body: {
+    ip?: string;
+    user?: string;
+    password?: string;
+    appName?: string;
+    gpoPin?: number;
+    appPort?: number;
+  }) =>
+    request<{
+      ok: boolean;
+      config: Record<string, string | number>;
+      credentialsPush?: { ok: boolean; error?: string };
+    }>('/api/sync/config', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  syncTestGpo: (pin?: number) =>
+    request<{ ok: boolean; pin: number; message: string }>('/api/sync/test-gpo', {
+      method: 'POST',
+      body: JSON.stringify(pin != null ? { pin } : {}),
+    }),
+  syncAllowList: () =>
+    request<{
+      demo?: boolean;
+      reader: { version: number; tids: string[]; count: number; updatedAt?: number | null };
+      dbTids: string[];
+      onlyInDb: string[];
+      onlyInReader: string[];
+      inSync: boolean;
+    }>('/api/sync/allowlist'),
+  syncMonitorSnapshot: (offset = 0) =>
+    request<FxMonitorSnapshot>(`/api/sync/monitor/snapshot?offset=${offset}`),
+  subscribeSyncMonitor: (opts: {
+    offset?: number;
+    interval?: number;
+    signal?: AbortSignal;
+    onSnapshot: (snap: FxMonitorSnapshot) => void;
+    onError?: (message: string) => void;
+    onClose?: () => void;
+  }) => {
+    const token = getStoredToken();
+    const qs = new URLSearchParams();
+    if (opts.offset) qs.set('offset', String(opts.offset));
+    if (opts.interval) qs.set('interval', String(opts.interval));
+    const path = `/api/sync/monitor/stream${qs.toString() ? `?${qs}` : ''}`;
+
+    (async () => {
+      try {
+        const res = await fetch(`${BASE}${path}`, {
+          headers: {
+            Accept: 'text/event-stream',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          signal: opts.signal,
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? res.statusText);
+        }
+        if (!res.body) throw new Error('Stream no disponible');
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() ?? '';
+          for (const part of parts) {
+            if (!part.trim()) continue;
+            let event = 'message';
+            let data = '';
+            for (const line of part.split('\n')) {
+              if (line.startsWith('event:')) event = line.slice(6).trim();
+              else if (line.startsWith('data:')) data += line.slice(5).trim();
+            }
+            if (!data) continue;
+            try {
+              const parsed = JSON.parse(data) as FxMonitorSnapshot & { message?: string };
+              if (event === 'error') opts.onError?.(parsed.message ?? data);
+              else opts.onSnapshot(parsed);
+            } catch {
+              opts.onError?.(data);
+            }
+          }
+        }
+      } catch (e) {
+        if (opts.signal?.aborted) return;
+        opts.onError?.(e instanceof Error ? e.message : 'Error de conexión al monitor');
+      } finally {
+        if (!opts.signal?.aborted) opts.onClose?.();
+      }
+    })();
+  },
   getConfig: () => request<Record<string, string>>('/api/config'),
 };

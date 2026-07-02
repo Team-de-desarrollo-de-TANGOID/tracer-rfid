@@ -82,3 +82,11 @@ server.on('error', (err) => {
   }
   throw err;
 });
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Racket Club API] unhandledRejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[Racket Club API] uncaughtException:', err);
+});

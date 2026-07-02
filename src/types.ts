@@ -136,6 +136,49 @@ export type SidebarTab =
   | 'configuracion'
   | 'usuarios';
 
+export interface FxMonitorSnapshot {
+  demo?: boolean;
+  ts: string;
+  message?: string;
+  config?: { ip?: string; appName?: string; gpoPin?: number };
+  logs?: { lines?: string; size?: number; restOk?: boolean; error?: string };
+  process?: {
+    running?: boolean;
+    pid?: string | null;
+    restOk?: boolean;
+    app?: string;
+    appVersion?: string;
+    error?: string;
+  };
+  allowList?: {
+    version?: number;
+    count?: number;
+    gpoPin?: number | null;
+    updatedAt?: number | null;
+    restOk?: boolean;
+    error?: string;
+  };
+  reader?: { ok?: boolean; ip?: string; status?: unknown; error?: string };
+  logOffset?: number;
+  tagEvents?: {
+    since?: number;
+    latest?: number;
+    events?: FxTagReadEvent[];
+    restOk?: boolean;
+    error?: string;
+  };
+  tagEventSince?: number;
+}
+
+export interface FxTagReadEvent {
+  id: number;
+  ts: string;
+  tag: string;
+  authorized: boolean;
+  meta?: string;
+  gpo?: number;
+}
+
 export interface AuditTag {
   epc: string;
   tid?: string;
@@ -176,6 +219,14 @@ export const PERMISSION_TAB_MAP: Record<SidebarTab, string[]> = {
   agregar: ['activos.crear'],
   auditoria: ['auditoria.ejecutar', 'auditoria.ver_historial'],
   sincronizar: ['sync.ejecutar', 'sync.ver_historial'],
-  configuracion: ['config.sku', 'config.estados', 'config.ubicaciones', 'config.propiedades', 'inventario.columnas'],
+  configuracion: [
+    'config.sku',
+    'config.estados',
+    'config.ubicaciones',
+    'config.propiedades',
+    'inventario.columnas',
+    'sync.ejecutar',
+    'sync.ver_historial',
+  ],
   usuarios: ['usuarios.ver', 'usuarios.gestionar', 'roles.gestionar'],
 };
