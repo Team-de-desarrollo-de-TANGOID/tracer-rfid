@@ -26,15 +26,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 import type {
   Activo,
-  AuditTag,
-  AuditoriaCompleta,
-  AuditoriaResumen,
   ColumnaTabla,
+  DashboardData,
+  DashboardPeriod,
   Estado,
   EventoActivo,
   FxMonitorSnapshot,
   InventarioColumnasConfig,
   Permiso,
+  PortalAlertPayload,
+  PortalDeteccion,
   Rol,
   Sku,
   TipoPropiedad,
@@ -249,6 +250,7 @@ export const api = {
 
   getRoles: () => request<Rol[]>('/api/roles'),
   getPermisos: () => request<Permiso[]>('/api/roles/permisos'),
+  getPermisosCatalog: () => request<Permiso[]>('/api/auth/permisos-catalog'),
   createRol: (body: { nombre: string; descripcion?: string; permisos: string[] }) =>
     request<Rol>('/api/roles', { method: 'POST', body: JSON.stringify(body) }),
   updateRol: (
@@ -264,42 +266,144 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ count }),
     }),
-  mockAuditScanOne: () =>
-    request<{ tid: string; demo: boolean }>('/api/mock/audit/scan-one', { method: 'POST' }),
 
-  saveAuditoria: (body: { tids: string[]; fechaInicio?: string; notas?: string }) =>
-    request<{
-      id: number;
-      total: number;
-      registrados: number;
-      desconocidos: number;
-      tags: AuditTag[];
-    }>('/api/auditorias', { method: 'POST', body: JSON.stringify(body) }),
+  getDashboard: (opts: { period?: DashboardPeriod; from?: string; to?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (opts.period) qs.set('period', opts.period);
+    if (opts.from) qs.set('from', opts.from);
+    if (opts.to) qs.set('to', opts.to);
+    const q = qs.toString();
+    return request<DashboardData>(`/api/dashboard${q ? `?${q}` : ''}`);
+  },
 
-  getAuditorias: (limit = 100) =>
-    request<AuditoriaResumen[]>(`/api/auditorias?limit=${limit}`),
+  resetDashboardDetecciones: (opts: {
+    period?: DashboardPeriod;
+    from?: string;
+    to?: string;
+  } = {}) =>
+    request<{ ok: boolean; deleted: number; message: string; range: DashboardData['range'] }>(
+      '/api/dashboard/reset-detecciones',
+      { method: 'POST', body: JSON.stringify(opts) }
+    ),
 
-  getAuditoria: (id: number) => request<AuditoriaCompleta>(`/api/auditorias/${id}`),
+  getDashboardDetecciones: (opts: {
+    period?: DashboardPeriod;
+    from?: string;
+    to?: string;
+    limit?: number;
+    offset?: number;
+  } = {}) => {
+    const qs = new URLSearchParams();
+    if (opts.period) qs.set('period', opts.period);
+    if (opts.from) qs.set('from', opts.from);
+    if (opts.to) qs.set('to', opts.to);
+    if (opts.limit != null) qs.set('limit', String(opts.limit));
+    if (opts.offset != null) qs.set('offset', String(opts.offset));
+    const q = qs.toString();
+    return request<{ range: DashboardData['range']; items: PortalDeteccion[] }>(
+      `/api/dashboard/detecciones${q ? `?${q}` : ''}`
+    );
+  },
 
-  mockAuditComplete: (tids: string[]) =>
-    request<{
-      id: number;
-      tags: AuditTag[];
-      total: number;
-      registrados: number;
-      desconocidos: number;
-      demo: boolean;
-    }>('/api/mock/audit/complete', { method: 'POST', body: JSON.stringify({ tids }) }),
+  subscribePortalAlerts: (opts: {
+    signal?: AbortSignal;
+    getSince?: () => string | null;
+    onAlert: (payload: PortalAlertPayload) => void;
+    onError?: (message: string) => void;
+    onClose?: () => void;
+  }) => {
+    const path = '/api/dashboard/alerts/stream';
+    let retryMs = 2000;
+    const idleMs = 45_000;
 
-  mockAudit: (count?: number) =>
-    request<{
-      id: number;
-      tags: AuditTag[];
-      total: number;
-      registrados: number;
-      desconocidos: number;
-      demo: boolean;
-    }>('/api/mock/audit', { method: 'POST', body: JSON.stringify({ count }) }),
+    const sleep = (ms: number) =>
+      new Promise<void>((resolve) => {
+        const t = setTimeout(resolve, ms);
+        opts.signal?.addEventListener('abort', () => clearTimeout(t), { once: true });
+      });
+
+    const readWithIdle = async (reader: ReadableStreamDefaultReader<Uint8Array>) => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('SSE sin actividad')), idleMs);
+      });
+      try {
+        return await Promise.race([reader.read(), timeout]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    };
+
+    const run = async () => {
+      while (!opts.signal?.aborted) {
+        const token = getStoredToken();
+        if (!token) {
+          await sleep(2000);
+          continue;
+        }
+        const since = opts.getSince?.();
+        const url = since
+          ? `${BASE}${path}?since=${encodeURIComponent(since)}`
+          : `${BASE}${path}`;
+        try {
+          const res = await fetch(url, {
+            headers: {
+              Accept: 'text/event-stream',
+              Authorization: `Bearer ${token}`,
+            },
+            signal: opts.signal,
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error ?? res.statusText);
+          }
+          if (!res.body) throw new Error('Stream no disponible');
+
+          retryMs = 2000;
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          while (!opts.signal?.aborted) {
+            const { done, value } = await readWithIdle(reader);
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const parts = buffer.split('\n\n');
+            buffer = parts.pop() ?? '';
+            for (const part of parts) {
+              if (!part.trim()) continue;
+              let event = 'message';
+              let data = '';
+              for (const line of part.split('\n')) {
+                if (line.startsWith('event:')) event = line.slice(6).trim();
+                else if (line.startsWith('data:')) data += line.slice(5).trim();
+              }
+              if (!data) continue;
+              try {
+                const parsed = JSON.parse(data) as PortalAlertPayload & { message?: string };
+                if (event === 'alert') opts.onAlert(parsed);
+                else if (event === 'error') opts.onError?.(parsed.message ?? data);
+              } catch {
+                /* ignore malformed chunk */
+              }
+            }
+          }
+        } catch (e) {
+          if (opts.signal?.aborted) return;
+          opts.onError?.(e instanceof Error ? e.message : 'Error en alertas');
+          await sleep(retryMs);
+          retryMs = Math.min(retryMs * 2, 30_000);
+          continue;
+        }
+        if (opts.signal?.aborted) return;
+        opts.onClose?.();
+        await sleep(retryMs);
+        retryMs = Math.min(retryMs * 2, 30_000);
+      }
+    };
+
+    run();
+  },
 
   sync: () =>
     request<{
@@ -318,12 +422,27 @@ export const api = {
     request<{
       demo: boolean;
       connected: boolean;
+      reachable?: boolean;
+      appAuthenticated?: boolean;
       appOk?: boolean;
       appError?: string;
-      appStatus?: { count?: number; version?: number; pid?: number };
+      appStatus?: { count?: number; version?: number; pid?: number; appVersion?: string };
+      health?: { ok?: boolean; version?: string; pid?: number; ip?: string };
       error?: string;
       config?: Record<string, string | number>;
+      portalWebhookUrl?: string;
     }>('/api/sync/status'),
+  syncAutoConnect: (body?: { password?: string; user?: string }) =>
+    request<{
+      ok: boolean;
+      ip?: string;
+      appPort?: number;
+      portalWebhookUrl?: string;
+      connected?: boolean;
+      message?: string;
+      error?: string;
+      credentialsPush?: { ok: boolean; error?: string };
+    }>('/api/sync/auto-connect', { method: 'POST', body: JSON.stringify(body ?? {}) }),
   syncProbe: (body?: { ip?: string; appPort?: number; user?: string; password?: string }) =>
     request<{
       ok: boolean;
@@ -332,6 +451,24 @@ export const api = {
       message?: string;
       error?: string;
     }>('/api/sync/probe', { method: 'POST', body: JSON.stringify(body ?? {}) }),
+  stopGateApp: (body?: { sshPassword?: string; sshUser?: string; adminPassword?: string }) =>
+    request<{
+      ok: boolean;
+      stopped?: boolean;
+      stillRunning?: boolean;
+      message?: string;
+      steps?: string[];
+      error?: string;
+    }>('/api/sync/app/stop', { method: 'POST', body: JSON.stringify(body ?? {}) }),
+  startGateApp: (body?: { enableAutostart?: boolean; sshPassword?: string; sshUser?: string }) =>
+    request<{
+      ok: boolean;
+      running?: boolean;
+      version?: string;
+      message?: string;
+      steps?: string[];
+      error?: string;
+    }>('/api/sync/app/start', { method: 'POST', body: JSON.stringify(body ?? {}) }),
   syncConfig: (body: {
     ip?: string;
     user?: string;
@@ -339,6 +476,7 @@ export const api = {
     appName?: string;
     gpoPin?: number;
     appPort?: number;
+    appToken?: string;
   }) =>
     request<{
       ok: boolean;
@@ -348,10 +486,31 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(body),
     }),
-  syncTestGpo: (pin?: number) =>
-    request<{ ok: boolean; pin: number; message: string }>('/api/sync/test-gpo', {
+  syncTestGpo: (pin?: number, state = true) =>
+    request<{ ok: boolean; pin: number; state: boolean; message: string }>('/api/sync/test-gpo', {
       method: 'POST',
-      body: JSON.stringify(pin != null ? { pin } : {}),
+      body: JSON.stringify({ pin, state }),
+    }),
+  getReaderSettings: () =>
+    request<{
+      demo?: boolean;
+      settings: import('../components/ReaderSettingsPanel').ReaderSettings;
+      readerConnected?: boolean;
+      readerError?: string;
+    }>('/api/sync/reader-settings'),
+  getPortalUiSettings: () =>
+    request<{ portalAlertsEnabled: boolean; portalDedupeSec: number }>(
+      '/api/sync/portal-ui-settings'
+    ),
+  saveReaderSettings: (settings: import('../components/ReaderSettingsPanel').ReaderSettings) =>
+    request<{
+      ok: boolean;
+      settings: import('../components/ReaderSettingsPanel').ReaderSettings;
+      readerApplied?: boolean;
+      readerError?: string;
+    }>('/api/sync/reader-settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
     }),
   syncAllowList: () =>
     request<{
@@ -364,19 +523,41 @@ export const api = {
     }>('/api/sync/allowlist'),
   syncMonitorSnapshot: (offset = 0) =>
     request<FxMonitorSnapshot>(`/api/sync/monitor/snapshot?offset=${offset}`),
+  monitorConnect: (body: {
+    sshUser?: string;
+    sshPassword: string;
+    adminUser?: string;
+    adminPassword?: string;
+  }) =>
+    request<{
+      ok: boolean;
+      message?: string;
+      error?: string;
+      ip?: string;
+      appOk?: boolean;
+      reachable?: boolean;
+      appVersion?: string;
+      deploy?: { skipped?: boolean; message?: string };
+    }>('/api/sync/monitor/connect', { method: 'POST', body: JSON.stringify(body) }),
+  monitorDisconnect: () =>
+    request<{ ok: boolean }>('/api/sync/monitor/disconnect', { method: 'POST' }),
   subscribeSyncMonitor: (opts: {
-    offset?: number;
-    interval?: number;
     signal?: AbortSignal;
-    onSnapshot: (snap: FxMonitorSnapshot) => void;
+    onSnapshot?: (snap: FxMonitorSnapshot) => void;
+    onStatus?: (snap: FxMonitorSnapshot) => void;
+    onLog?: (data: { lines: string; tail?: boolean; source?: string }) => void;
+    onMeta?: (data: {
+      source?: string;
+      mode?: string;
+      message?: string;
+      live?: boolean;
+      path?: string;
+    }) => void;
     onError?: (message: string) => void;
     onClose?: () => void;
   }) => {
     const token = getStoredToken();
-    const qs = new URLSearchParams();
-    if (opts.offset) qs.set('offset', String(opts.offset));
-    if (opts.interval) qs.set('interval', String(opts.interval));
-    const path = `/api/sync/monitor/stream${qs.toString() ? `?${qs}` : ''}`;
+    const path = '/api/sync/monitor/stream';
 
     (async () => {
       try {
@@ -413,9 +594,17 @@ export const api = {
             }
             if (!data) continue;
             try {
-              const parsed = JSON.parse(data) as FxMonitorSnapshot & { message?: string };
+              const parsed = JSON.parse(data) as Record<string, unknown> & { message?: string };
               if (event === 'error') opts.onError?.(parsed.message ?? data);
-              else opts.onSnapshot(parsed);
+              else if (event === 'log') {
+                opts.onLog?.(parsed as { lines: string; tail?: boolean; source?: string });
+              } else if (event === 'meta') {
+                opts.onMeta?.(parsed as { source?: string; mode?: string; message?: string });
+              } else if (event === 'status' || event === 'snapshot') {
+                const snap = parsed as FxMonitorSnapshot;
+                opts.onStatus?.(snap);
+                opts.onSnapshot?.(snap);
+              }
             } catch {
               opts.onError?.(data);
             }

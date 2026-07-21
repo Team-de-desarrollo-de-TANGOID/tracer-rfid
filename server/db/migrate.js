@@ -14,6 +14,12 @@ import { up as migration010 } from './migrations/010_lista_propiedades.js';
 import { up as migration011 } from './migrations/011_tid_codigo.js';
 import { up as migration012 } from './migrations/012_motivo_baja_sistema.js';
 import { up as migration013 } from './migrations/013_propiedad_creado_por.js';
+import { up as migration014 } from './migrations/014_portal_dashboard.js';
+import { up as migration015 } from './migrations/015_dashboard_roles.js';
+import { up as migration016 } from './migrations/016_portal_evento_index.js';
+import { up as migration017 } from './migrations/017_portal_detecciones_fk.js';
+import { up as migration018 } from './migrations/018_portal_detecciones_tz.js';
+import { up as migration019 } from './migrations/019_dashboard_permisos.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,6 +46,12 @@ export function runMigrations(db) {
     { name: '011_tid_codigo', up: migration011 },
     { name: '012_motivo_baja_sistema', up: migration012 },
     { name: '013_propiedad_creado_por', up: migration013 },
+    { name: '014_portal_dashboard', up: migration014 },
+    { name: '015_dashboard_roles', up: migration015 },
+    { name: '016_portal_evento_index', up: migration016 },
+    { name: '017_portal_detecciones_fk', up: migration017 },
+    { name: '018_portal_detecciones_tz', up: migration018 },
+    { name: '019_dashboard_permisos', up: migration019 },
   ];
 
   for (const m of migrations) {

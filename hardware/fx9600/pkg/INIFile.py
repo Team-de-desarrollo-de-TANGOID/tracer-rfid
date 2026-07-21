@@ -52,3 +52,20 @@ class INIFile:
             return False
         except Exception:
             return default
+
+    def set_value(self, section, key, value):
+        if section not in self.parse:
+            self.parse[section] = {}
+        self.parse[section][key] = str(value)
+
+    def save(self):
+        lines = []
+        for section, pairs in self.parse.items():
+            lines.append("[" + section + "]")
+            for key, value in pairs.items():
+                lines.append(key + "=" + value)
+            lines.append("")
+        with open(self.file, "w", encoding="utf-8") as out:
+            out.write("\n".join(lines).rstrip() + "\n")
+        self.open = open(self.file, "r")
+        self.f_read = self.open.read()

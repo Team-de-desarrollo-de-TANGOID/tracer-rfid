@@ -1,17 +1,40 @@
 # RFID TRACER — Trazabilidad y gestión de activos con RFID
 
-**Prototipo DEMO** para presentación y validación con el cliente.
+**Prototipo / instalación Racket Club** para gestión de activos y control de portal con lector **Zebra FX9600**.
 
 > Desarrollado e implementado por **TANGOID SRL**.
 
-Aplicación híbrida (escritorio Electron + API local) para inventario, auditoría y trazabilidad de activos etiquetados con RFID. En esta fase los lectores **R3** (USB) y **FX9600** (puerta) están **simulados**; la base de datos es **SQLite** local.
+Aplicación híbrida (escritorio Electron + API local) para inventario, trazabilidad y control de salidas no autorizadas en portal RFID. Integración con lector **FX9600** vía User App `racketclub-gate` (Python / pyziotc). Base de datos **SQLite** local.
 
-## Acceso demo
+## Documentación
 
-| Campo      | Valor        |
-|-----------|--------------|
-| Usuario   | `admin`      |
+| Documento | Descripción |
+|-----------|-------------|
+| [docs/MANUAL-APLICACION.md](docs/MANUAL-APLICACION.md) | Manual completo de la aplicación |
+| [docs/ACCESO-PANELES.md](docs/ACCESO-PANELES.md) | Paso a paso: panel web app y panel FX9600 |
+| [docs/CREDENCIALES.md](docs/CREDENCIALES.md) | Usuarios y contraseñas (app, lector, SSH) |
+| [hardware/fx9600/README.md](hardware/fx9600/README.md) | User App del lector |
+
+## Acceso rápido
+
+### Aplicación Racket Club
+
+| Campo | Valor |
+|-------|-------|
+| URL (desarrollo) | `http://localhost:5173` |
+| URL (producción) | `http://localhost:3847` |
+| Usuario | `admin` |
 | Contraseña | `Admin3915` |
+
+### Lector FX9600 (panel Zebra)
+
+| Campo | Valor |
+|-------|-------|
+| URL | `https://169.254.240.149` |
+| Usuario panel | `admin` / `Admin1234$` |
+| Usuario SSH/API | `rfidadm` / `Tangodeveloper3915$` |
+
+Detalle y pasos: [docs/ACCESO-PANELES.md](docs/ACCESO-PANELES.md).
 
 Cambie estas credenciales antes de cualquier uso fuera de un entorno de prueba controlado.
 
@@ -30,11 +53,11 @@ Cambie estas credenciales antes de cualquier uso fuera de un entorno de prueba c
 - Formulario **dinámico** según el catálogo de propiedades (sistema + personalizadas)
 - Lectura R3 **simulada**
 
-### Auditoría rápida
-- Lectura masiva simulada (canasto de etiquetas)
-- Tabla en **solo lectura** con acción **Ir a registro** (salta al inventario y resalta el activo)
-- **Guardar auditoría** con usuario, fechas, totales y detalle por TID
-- **Historial** de auditorías guardadas, consultable en cualquier momento
+### Dashboard
+
+Página principal con KPIs de activos (total, por estado) y reporte de **salidas no autorizadas** detectadas por el lector en el portal de entrada/salida. Filtros por período: hoy, ayer, semana, mes, etc.
+
+**Alertas en tiempo real (push):** al detectar una salida no autorizada, el FX9600 envía `POST /api/portal/alert` a la web app; el servidor consulta entonces el reporte de tags en el lector (`/api/tag-events`) y muestra un popup al usuario. La IP del lector, la URL de alertas hacia la PC y el token API se configuran **automáticamente** al conectar (solo se pide la contraseña admin del lector la primera vez).
 
 ### Sincronización
 - Envío simulado de lista autorizada al lector FX9600 (puerta)
@@ -131,7 +154,7 @@ La app queda en `http://localhost:3847` (API + frontend en el mismo origen).
 ├── public/            # Assets estáticos (logo.svg)
 ├── data/              # Base SQLite (se crea al iniciar)
 ├── scripts/           # Build portable para Windows
-└── docs/              # SDKs y documentación de hardware
+├── docs/              # Manual, acceso a paneles, credenciales, SDKs hardware
 ```
 
 ## Demo portable (sin instalar Node)
@@ -167,18 +190,19 @@ Salida en `release/`:
 | `GET /api/health` | Estado del servidor |
 | `POST /api/auth/login` | Inicio de sesión |
 | `/api/activos` | Inventario y CRUD de activos |
-| `/api/auditorias` | Guardar y consultar historial de auditorías |
+| `/api/dashboard` | KPIs y métricas de portal |
+| `POST /api/portal/alert` | Webhook del FX9600 (salida no autorizada) |
 | `/api/propiedades-activo` | Catálogo de propiedades personalizables |
 | `/api/mock/*` | Lectores RFID simulados |
 | `/api/sync` | Sincronización con puerta (demo) |
 
-## Fase final (con hardware real)
+## Fase final (hardware)
 
-| Componente | Integración planificada |
-|------------|-------------------------|
-| Lector USB R3 | Servicio C# con `UHFAPI.dll` (ver `docs/`) |
-| FX9600 puerta | REST ZIoTC + User App Python (`pyziotc`) |
-| Baliza roja | GPIO `/cloud/gpo` desde User App |
+| Componente | Estado |
+|------------|--------|
+| FX9600 puerta | Integrado — User App `racketclub-gate`, alertas SSE, sync lista |
+| Lector USB R3 | Planificado — `UHFAPI.dll` (ver `docs/`) |
+| Baliza GPO | Configurable desde app (GPIO del lector) |
 
 Documentación FX9600: https://zebradevs.github.io/rfid-ziotc-docs/
 

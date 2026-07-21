@@ -22,7 +22,9 @@ function getServerScript() {
   if (!usePackagedLayout) {
     return path.join(__dirname, '..', 'server', 'index.js');
   }
-  return path.join(process.resourcesPath, 'app.asar.unpacked', 'server', 'index.js');
+  // El servidor debe cargarse desde app.asar para resolver node_modules empaquetados.
+  // Si estuviera en app.asar.unpacked, fallaría con "Cannot find package 'express'".
+  return path.join(process.resourcesPath, 'app.asar', 'server', 'index.js');
 }
 
 function logError(message, err) {

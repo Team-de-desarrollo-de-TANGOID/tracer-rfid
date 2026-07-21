@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { login, revokeSession, authMiddleware } from '../middleware/auth.js';
+import { getDb } from '../db.js';
 
 const router = Router();
 
@@ -20,6 +21,13 @@ router.post('/logout', authMiddleware, (req, res) => {
 
 router.get('/me', authMiddleware, (req, res) => {
   res.json({ user: req.user });
+});
+
+router.get('/permisos-catalog', authMiddleware, (_req, res) => {
+  const rows = getDb()
+    .prepare('SELECT codigo, nombre, modulo FROM permisos ORDER BY modulo, codigo')
+    .all();
+  res.json(rows);
 });
 
 export default router;

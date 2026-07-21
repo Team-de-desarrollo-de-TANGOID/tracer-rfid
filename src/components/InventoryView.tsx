@@ -37,6 +37,8 @@ import {
   type SystemFilters,
 } from '../utils/inventoryFilters';
 import type { Activo, ColumnaTabla, Estado, InventarioColumnasConfig, Ubicacion } from '../types';
+import { PermAction, usePerm } from './PermAction';
+import { P } from '../constants/permissions';
 
 interface Props {
   activos: Activo[];
@@ -47,18 +49,12 @@ interface Props {
   onUpdateEstado: (id: number, estadoId: number, motivoBaja?: string) => Promise<void>;
   onBatchUpdateEstado: (ids: number[], estadoId: number, motivoBaja?: string) => Promise<void>;
   onBatchUpdateUbicacion: (ids: number[], ubicacionId: number) => Promise<void>;
-  onBatchDelete: (ids: number[]) => Promise<void>;
+  onBatchDelete: (ids: number[]) => Promise<{ total: number; errores: { id: number; error: string }[]; mensaje: string }>;
   onUpdateActivo: (
     id: number,
     body: Partial<{ descripcion: string; ubicacionId: number; codigoInterno: string; motivoBaja: string }>
   ) => Promise<void>;
   onSaveColumnas: (columnas: string[]) => Promise<void>;
-  canEdit: boolean;
-  canChangeEstado: boolean;
-  canDelete: boolean;
-  canConfigColumnas: boolean;
-  canVerHistorial: boolean;
-  canQuickEdit: boolean;
   focusActivoId?: number | null;
   onFocusHandled?: () => void;
 }
@@ -77,15 +73,14 @@ export default function InventoryView({
   onBatchDelete,
   onUpdateActivo,
   onSaveColumnas,
-  canEdit,
-  canChangeEstado,
-  canDelete,
-  canConfigColumnas,
-  canVerHistorial,
-  canQuickEdit,
   focusActivoId = null,
   onFocusHandled,
 }: Props) {
+  const { allowed: canEdit } = usePerm(P.activosEditar);
+  const { allowed: canChangeEstado } = usePerm(P.activosCambiarEstado);
+  const { allowed: canDelete } = usePerm(P.activosEliminar);
+  const { allowed: canVerHistorial } = usePerm(P.activosVerHistorial);
+  const { allowed: canQuickEdit } = usePerm(P.activosEdicionRapida);
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
   const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
@@ -104,6 +99,8 @@ export default function InventoryView({
   const [batchMotivo, setBatchMotivo] = useState('');
   const [removerModo, setRemoverModo] = useState<RemoverModo>('baja');
   const [batchSubmitting, setBatchSubmitting] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [confirmEliminar, setConfirmEliminar] = useState(false);
 
   const columnasActivas = columnasConfig?.columnasActivas ?? DEFAULT_INVENTORY_COLUMNS;
   const editableVisibleCols = useMemo(
@@ -300,7 +297,7 @@ export default function InventoryView({
     }
   };
 
-  const canBatchSelect = canChangeEstado || canEdit || canDelete;
+  const canBatchSelect = true;
   const estadosInactivos = useMemo(
     () => estados.filter((e) => estadoEstaDeshabilitado(e)),
     [estados]
@@ -316,15 +313,22 @@ export default function InventoryView({
       setRemoverModo(canChangeEstado ? 'baja' : 'eliminar');
       setBatchEstadoId(estadosInactivos[0]?.id ?? estados[0]?.id ?? 0);
       setBatchMotivo('');
+      setConfirmEliminar(false);
     }
+    setBatchError(null);
     setBatchModal(type);
   };
 
-  const closeBatchModal = () => setBatchModal(null);
+  const closeBatchModal = () => {
+    setBatchModal(null);
+    setBatchError(null);
+    setConfirmEliminar(false);
+  };
 
   const handleBatchSubmit = async () => {
     if (selectedInView.length === 0 || !batchModal) return;
     setBatchSubmitting(true);
+    setBatchError(null);
     try {
       if (batchModal === 'estado') {
         if (!batchEstadoId) return;
@@ -346,18 +350,23 @@ export default function InventoryView({
           estadoRequiereMotivoBaja(batchEstado) ? batchMotivo || undefined : undefined
         );
       } else {
-        const n = selectedInView.length;
-        if (
-          !confirm(
-            `¿Eliminar permanentemente ${n} activo(s) del inventario? Esta acción no se puede deshacer.`
-          )
-        ) {
-          return;
+        if (!confirmEliminar) return;
+        const result = await onBatchDelete(selectedInView);
+        if (result?.errores?.length) {
+          const msg =
+            result.mensaje ??
+            `${result.errores.length} activo(s) no se pudieron eliminar.`;
+          if ((result.total ?? 0) === 0) {
+            setBatchError(msg);
+            return;
+          }
+          setBatchError(msg);
         }
-        await onBatchDelete(selectedInView);
       }
       setSelectedIds(new Set());
       closeBatchModal();
+    } catch (e) {
+      setBatchError(e instanceof Error ? e.message : 'No se pudo completar la acción.');
     } finally {
       setBatchSubmitting(false);
     }
@@ -398,7 +407,7 @@ export default function InventoryView({
   );
 
   const estadosActivos = estados.filter((e) => estadoEstaHabilitado(e));
-  const showActionsCol = canVerHistorial || canChangeEstado || quickEditEnabled;
+  const showActionsCol = true;
   const showSelectCol = canBatchSelect;
   const batchEstadoSeleccionado = estados.find((e) => e.id === batchEstadoId);
   const batchRequiereMotivo = estadoRequiereMotivoBaja(batchEstadoSeleccionado);
@@ -415,16 +424,15 @@ export default function InventoryView({
             )}
           </p>
         </div>
-        {canConfigColumnas && (
-          <button
-            type="button"
-            onClick={openColumnPicker}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600"
-          >
-            <Columns3 size={14} />
-            Columnas
-          </button>
-        )}
+        <PermAction
+          permission={P.inventarioColumnas}
+          onClick={openColumnPicker}
+          className="flex items-center gap-2 px-3 py-2 text-xs font-semibold border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600"
+          lockedClassName="hover:bg-transparent"
+        >
+          <Columns3 size={14} />
+          Columnas
+        </PermAction>
       </header>
 
       <div className="p-8 flex-1 flex flex-col overflow-hidden gap-5">
@@ -521,41 +529,39 @@ export default function InventoryView({
         </div>
 
         {/* Barra de acciones por lote */}
-        {canBatchSelect && selectedInView.length > 0 && (
+        {selectedInView.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl shadow-sm flex-shrink-0">
             <span className="text-sm font-semibold mr-1">
               {selectedInView.length} activo(s) seleccionado(s)
             </span>
-            {canChangeEstado && (
-              <button
-                type="button"
-                onClick={() => openBatchModal('estado')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-blue-700 rounded-lg text-sm font-bold cursor-pointer hover:bg-blue-50"
-              >
-                <CircleDot size={14} />
-                Estado
-              </button>
-            )}
-            {canEdit && ubicaciones.length > 0 && (
-              <button
-                type="button"
-                onClick={() => openBatchModal('ubicacion')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-blue-700 rounded-lg text-sm font-bold cursor-pointer hover:bg-blue-50"
-              >
-                <MapPin size={14} />
-                Ubicación
-              </button>
-            )}
-            {(canChangeEstado || canDelete) && (
-              <button
-                type="button"
-                onClick={() => openBatchModal('remover')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/30 text-white rounded-lg text-sm font-bold cursor-pointer hover:bg-white/20"
-              >
-                <Ban size={14} />
-                Deshabilitar / eliminar
-              </button>
-            )}
+            <PermAction
+              permission={P.activosCambiarEstado}
+              onClick={() => openBatchModal('estado')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-blue-700 rounded-lg text-sm font-bold cursor-pointer hover:bg-blue-50"
+              lockedClassName="bg-white/20 text-white/80 border border-white/30"
+            >
+              <CircleDot size={14} />
+              Estado
+            </PermAction>
+            <PermAction
+              permission={P.activosEditar}
+              onClick={() => openBatchModal('ubicacion')}
+              disabled={ubicaciones.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-blue-700 rounded-lg text-sm font-bold cursor-pointer hover:bg-blue-50 disabled:opacity-50"
+              lockedClassName="bg-white/20 text-white/80 border border-white/30"
+            >
+              <MapPin size={14} />
+              Ubicación
+            </PermAction>
+            <PermAction
+              permission={[P.activosCambiarEstado, P.activosEliminar]}
+              onClick={() => openBatchModal('remover')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/30 text-white rounded-lg text-sm font-bold cursor-pointer hover:bg-white/20"
+              lockedClassName="opacity-70"
+            >
+              <Ban size={14} />
+              Deshabilitar / eliminar
+            </PermAction>
             <button
               type="button"
               onClick={() => setSelectedIds(new Set())}
@@ -648,44 +654,44 @@ export default function InventoryView({
                       {showActionsCol && (
                         <td className="px-4 py-3">
                         <div className="flex gap-1 flex-wrap">
-                          {quickEditEnabled && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                isQuickEditing
-                                  ? inlineEdit.confirmQuickEdit(item.id)
-                                  : inlineEdit.toggleQuickEdit(item.id)
-                              }
-                              title={isQuickEditing ? 'Confirmar edición' : 'Edición rápida'}
-                              className={`p-1.5 border rounded cursor-pointer ${
-                                isQuickEditing
-                                  ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                  : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                              }`}
+                          <PermAction
+                            permission={P.activosEdicionRapida}
+                            onClick={() =>
+                              isQuickEditing
+                                ? inlineEdit.confirmQuickEdit(item.id)
+                                : inlineEdit.toggleQuickEdit(item.id)
+                            }
+                            title={isQuickEditing ? 'Confirmar edición' : 'Edición rápida'}
+                            disabled={!quickEditEnabled}
+                            className={`p-1.5 border rounded cursor-pointer ${
+                              isQuickEditing
+                                ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            }`}
+                            lockedClassName="border-slate-200"
+                          >
+                            {isQuickEditing ? <Check size={13} /> : <Pencil size={13} />}
+                          </PermAction>
+                          <PermAction
+                            permission={P.activosVerHistorial}
+                            onClick={() => setDetalleActivo(item)}
+                            title="Ver detalles"
+                            className="p-1.5 border border-slate-200 text-slate-600 rounded cursor-pointer hover:bg-slate-50"
+                            lockedClassName="border-slate-200"
+                          >
+                            <Eye size={13} />
+                          </PermAction>
+                          {!item.esActivo && estadosActivos[0] && (
+                            <PermAction
+                              permission={P.activosCambiarEstado}
+                              onClick={() => onUpdateEstado(item.id, estadosActivos[0].id)}
+                              className="px-2 py-1 border border-emerald-600 text-emerald-600 rounded text-[11px] font-bold hover:bg-emerald-50 cursor-pointer"
+                              lockedClassName="border-slate-300 text-slate-500"
                             >
-                              {isQuickEditing ? <Check size={13} /> : <Pencil size={13} />}
-                            </button>
+                              Reactivar
+                            </PermAction>
                           )}
-                          {canVerHistorial && (
-                              <button
-                                type="button"
-                                onClick={() => setDetalleActivo(item)}
-                                title="Ver detalles"
-                                className="p-1.5 border border-slate-200 text-slate-600 rounded cursor-pointer hover:bg-slate-50"
-                              >
-                                <Eye size={13} />
-                              </button>
-                            )}
-                            {canChangeEstado && !item.esActivo && estadosActivos[0] && (
-                              <button
-                                type="button"
-                                onClick={() => onUpdateEstado(item.id, estadosActivos[0].id)}
-                                className="px-2 py-1 border border-emerald-600 text-emerald-600 rounded text-[11px] font-bold hover:bg-emerald-50 cursor-pointer"
-                              >
-                                Reactivar
-                              </button>
-                            )}
-                          </div>
+                        </div>
                         </td>
                       )}
                     </tr>
@@ -782,36 +788,32 @@ export default function InventoryView({
               {batchModal === 'remover' && (
                 <>
                   <div className="flex gap-2 p-1 bg-slate-100 rounded-lg">
-                    {canChangeEstado && (
-                      <button
-                        type="button"
-                        onClick={() => setRemoverModo('baja')}
-                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-md cursor-pointer ${
-                          removerModo === 'baja'
-                            ? 'bg-white text-slate-900 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                      >
-                        <Ban size={14} />
-                        Dar de baja
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        type="button"
-                        onClick={() => setRemoverModo('eliminar')}
-                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-md cursor-pointer ${
-                          removerModo === 'eliminar'
-                            ? 'bg-white text-red-700 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                      >
-                        <Trash2 size={14} />
-                        Eliminar
-                      </button>
-                    )}
+                    <PermAction
+                      permission={P.activosCambiarEstado}
+                      onClick={() => setRemoverModo('baja')}
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-md cursor-pointer ${
+                        removerModo === 'baja'
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <Ban size={14} />
+                      Dar de baja
+                    </PermAction>
+                    <PermAction
+                      permission={P.activosEliminar}
+                      onClick={() => setRemoverModo('eliminar')}
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-md cursor-pointer ${
+                        removerModo === 'eliminar'
+                          ? 'bg-white text-red-700 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <Trash2 size={14} />
+                      Eliminar
+                    </PermAction>
                   </div>
-                  {removerModo === 'baja' && canChangeEstado && (
+                  {removerModo === 'baja' && (
                     <>
                       <div>
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1.5">
@@ -850,13 +852,30 @@ export default function InventoryView({
                       </p>
                     </>
                   )}
-                  {removerModo === 'eliminar' && canDelete && (
-                    <p className="text-sm text-red-600 m-0 bg-red-50 border border-red-100 rounded-lg p-3">
-                      Los {selectedInView.length} activo(s) se eliminarán permanentemente del
-                      inventario. Esta acción no se puede deshacer.
-                    </p>
+                  {removerModo === 'eliminar' && (
+                    <div className="space-y-3">
+                      <p className="text-sm text-red-600 m-0 bg-red-50 border border-red-100 rounded-lg p-3">
+                        Los {selectedInView.length} activo(s) se eliminarán permanentemente del
+                        inventario. Esta acción no se puede deshacer.
+                      </p>
+                      <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={confirmEliminar}
+                          onChange={(e) => setConfirmEliminar(e.target.checked)}
+                          className="mt-0.5 rounded border-slate-300"
+                        />
+                        <span>Confirmo que deseo eliminar permanentemente los activos seleccionados.</span>
+                      </label>
+                    </div>
                   )}
                 </>
+              )}
+
+              {batchError && (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 m-0">
+                  {batchError}
+                </p>
               )}
             </div>
             <div className="px-6 py-4 border-t flex justify-end gap-2">
@@ -872,11 +891,14 @@ export default function InventoryView({
                 onClick={handleBatchSubmit}
                 disabled={
                   batchSubmitting ||
-                  (batchModal === 'estado' && !batchEstadoId) ||
+                  (batchModal === 'estado' && (!batchEstadoId || (batchRequiereMotivo && !batchMotivo.trim()))) ||
                   (batchModal === 'ubicacion' && !batchUbicacionId) ||
                   (batchModal === 'remover' &&
                     removerModo === 'baja' &&
-                    (!batchEstadoId || estadosInactivos.length === 0))
+                    (!batchEstadoId ||
+                      estadosInactivos.length === 0 ||
+                      (batchRequiereMotivo && !batchMotivo.trim()))) ||
+                  (batchModal === 'remover' && removerModo === 'eliminar' && !confirmEliminar)
                 }
                 className={`px-4 py-2 text-white text-sm font-semibold rounded-lg cursor-pointer disabled:opacity-50 flex items-center gap-2 ${
                   batchModal === 'remover' && removerModo === 'eliminar'

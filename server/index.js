@@ -15,7 +15,10 @@ import preferenciasRoutes from './routes/preferencias.js';
 import propiedadesActivosRoutes from './routes/propiedadesActivos.js';
 import mockRoutes from './routes/mock.js';
 import syncRoutes from './routes/sync.js';
-import auditoriasRoutes from './routes/auditorias.js';
+import dashboardRoutes from './routes/dashboard.js';
+import portalRoutes from './routes/portal.js';
+import { autoConnectReaderOnStartup } from './services/fx9600Service.js';
+import { startPortalTagEventsPoller } from './services/portalIngestService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.API_PORT) || 3847;
@@ -47,7 +50,8 @@ app.use('/api/roles', rolesRoutes);
 app.use('/api/preferencias', preferenciasRoutes);
 app.use('/api/propiedades-activo', propiedadesActivosRoutes);
 app.use('/api/mock', mockRoutes);
-app.use('/api/auditorias', auditoriasRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/portal', portalRoutes);
 app.use('/api/sync', syncRoutes);
 app.get('/api/config', (_req, res) => {
   const rows = getDb().prepare('SELECT key, value FROM config').all();
@@ -68,9 +72,18 @@ if (SERVE_UI) {
   });
 }
 
-const server = app.listen(PORT, () => {
+const HOST = process.env.API_HOST || '0.0.0.0';
+const server = app.listen(PORT, HOST, () => {
   const mode = SERVE_UI ? 'app' : 'api';
-  console.log(`[Racket Club] http://localhost:${PORT} (${mode} — TANGOID SRL)`);
+  console.log(`[Racket Club] http://${HOST}:${PORT} (${mode} — TANGOID SRL)`);
+  setTimeout(() => {
+    autoConnectReaderOnStartup()
+      .then((r) => {
+        if (r?.ok) console.log(`[FX9600] Auto-conectado: ${r.ip} · webhook ${r.portalWebhookUrl}`);
+      })
+      .catch(() => {});
+  }, 2500);
+  startPortalTagEventsPoller();
 });
 
 server.on('error', (err) => {

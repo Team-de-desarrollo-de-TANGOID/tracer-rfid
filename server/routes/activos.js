@@ -8,10 +8,29 @@ import {
   esEstadoDeBaja,
   estadoEstaHabilitado,
 } from '../constants/estadoOperativo.js';
+import { normalizeTid } from '../utils/tid.js';
 
 const router = Router();
 
 router.use(authMiddleware);
+
+function detachPortalDetecciones(db, activoId) {
+  db.prepare('UPDATE portal_detecciones SET activo_id = NULL WHERE activo_id = ?').run(activoId);
+}
+
+function deleteActivoRecord(db, activo, usuarioId, { lote = false } = {}) {
+  registrarEvento({
+    activoId: activo.id,
+    epc: activo.epc,
+    tipo: 'ELIMINACION',
+    estadoAnteriorId: activo.estado_id,
+    usuarioId,
+    origen: 'manual',
+    metadata: lote ? { lote: true } : undefined,
+  });
+  detachPortalDetecciones(db, activo.id);
+  db.prepare('DELETE FROM activos WHERE id = ?').run(activo.id);
+}
 
 function sanitizePropiedadesExtraForCreate(input) {
   if (!input || typeof input !== 'object') return '{}';
@@ -204,18 +223,12 @@ router.delete('/lote', requirePermission('activos.eliminar'), (req, res) => {
         continue;
       }
 
-      registrarEvento({
-        activoId: cur.id,
-        epc: cur.epc,
-        tipo: 'ELIMINACION',
-        estadoAnteriorId: cur.estado_id,
-        usuarioId: req.user.id,
-        origen: 'manual',
-        metadata: { lote: true },
-      });
-
-      db.prepare('DELETE FROM activos WHERE id = ?').run(id);
-      eliminados++;
+      try {
+        deleteActivoRecord(db, cur, req.user.id, { lote: true });
+        eliminados++;
+      } catch (e) {
+        errores.push({ id, error: e.message || 'No se pudo eliminar' });
+      }
     }
   });
 
@@ -255,7 +268,7 @@ router.post('/lote', requirePermission('activos.crear'), (req, res) => {
   }
 
   const extraJson = sanitizePropiedadesExtraForCreate(propiedadesExtra);
-  const unique = [...new Set(epcs.map((e) => String(e).trim().toUpperCase()).filter(Boolean))];
+  const unique = [...new Set(epcs.map((e) => normalizeTid(e)).filter(Boolean))];
   const creados = [];
   const errores = [];
 
@@ -357,7 +370,7 @@ router.post('/', requirePermission('activos.crear'), (req, res) => {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'), datetime('now','localtime'))`
       )
       .run(
-        epc.trim().toUpperCase(),
+        normalizeTid(epc),
         skuId,
         estadoId,
         ubicacionId ?? null,
@@ -499,16 +512,12 @@ router.delete('/:id', requirePermission('activos.eliminar'), (req, res) => {
   const cur = getActivoById(req.params.id);
   if (!cur) return res.status(404).json({ error: 'Activo no encontrado.' });
 
-  registrarEvento({
-    activoId: cur.id,
-    epc: cur.epc,
-    tipo: 'ELIMINACION',
-    estadoAnteriorId: cur.estado_id,
-    usuarioId: req.user.id,
-  });
-
-  db.prepare('DELETE FROM activos WHERE id = ?').run(req.params.id);
-  res.json({ ok: true });
+  try {
+    deleteActivoRecord(db, cur, req.user.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(409).json({ error: e.message || 'No se pudo eliminar el activo.' });
+  }
 });
 
 export default router;

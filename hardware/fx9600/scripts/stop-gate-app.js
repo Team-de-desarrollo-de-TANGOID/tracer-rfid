@@ -66,6 +66,9 @@ async function main() {
   r = await req('PUT', '/cloud/stop', token, {});
   console.log('inventory stop:', r.status, r.text.slice(0, 120));
 
+  console.log('\n=== SSH stop flag + kill (requiere ssh rfidadm@lector) ===');
+  console.log('  touch /apps/.racketclub-gate-stopped && /apps/stop_racketclub-gate.sh');
+
   await new Promise((resolve) => setTimeout(resolve, 3000));
   r = await req('GET', '/cloud/apps', token);
   console.log('estado final:', r.text);

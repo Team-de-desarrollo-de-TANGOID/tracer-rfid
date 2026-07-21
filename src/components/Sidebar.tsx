@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Database,
   Plus,
-  ScanLine,
   CloudUpload,
   Settings,
   Info,
@@ -13,6 +12,7 @@ import {
   Package,
   Radio,
   ChevronDown,
+  LayoutDashboard,
 } from 'lucide-react';
 import Logo from './Logo';
 import { APP_NAME, APP_TAGLINE } from '../constants/branding';
@@ -33,8 +33,8 @@ interface SidebarProps {
 }
 
 const NAV: { id: SidebarTab; label: string; icon: typeof Database }[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'activos', label: 'Activos', icon: Package },
-  { id: 'auditoria', label: 'Auditoría rápida', icon: ScanLine },
   { id: 'sincronizar', label: 'Sincronizar puerta', icon: CloudUpload },
   { id: 'configuracion', label: 'Configuración', icon: Settings },
 ];

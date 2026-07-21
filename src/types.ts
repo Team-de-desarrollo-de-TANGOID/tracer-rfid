@@ -1,3 +1,5 @@
+import { P } from './constants/permissions';
+
 export interface Estado {
   id: number;
   codigo?: string;
@@ -134,8 +136,8 @@ export interface EventoActivo {
 }
 
 export type SidebarTab =
+  | 'dashboard'
   | 'activos'
-  | 'auditoria'
   | 'sincronizar'
   | 'configuracion';
 
@@ -149,12 +151,12 @@ export const ACTIVOS_SECTIONS: {
   {
     id: 'inventario',
     label: 'Inventario',
-    permissions: ['inventario.ver'],
+    permissions: [P.inventarioVer],
   },
   {
     id: 'agregar',
     label: 'Agregar activos',
-    permissions: ['activos.crear'],
+    permissions: [P.activosCrear],
   },
 ];
 
@@ -168,17 +170,17 @@ export const CONFIG_SECTIONS: {
   {
     id: 'catalogos',
     label: 'Propiedades de activos',
-    permissions: ['config.sku', 'config.estados', 'config.ubicaciones', 'config.propiedades'],
+    permissions: [P.configSku, P.configEstados, P.configUbicaciones, P.configPropiedades],
   },
   {
     id: 'lector-puerta',
     label: 'Lector de puerta',
-    permissions: ['sync.ejecutar', 'sync.ver_historial'],
+    permissions: [P.syncEjecutar, P.syncVerHistorial, P.syncControlApp],
   },
   {
     id: 'usuarios-roles',
     label: 'Usuarios y roles',
-    permissions: ['usuarios.ver', 'usuarios.gestionar', 'roles.gestionar'],
+    permissions: [P.usuariosVer, P.usuariosGestionar, P.rolesGestionar],
   },
 ];
 
@@ -225,55 +227,85 @@ export interface FxTagReadEvent {
   gpo?: number;
 }
 
-export interface AuditTag {
-  epc: string;
-  tid?: string;
-  registrado: boolean;
+export type DashboardPeriod = 'hoy' | 'ayer' | 'semana' | 'mes' | 'mes_anterior' | 'personalizado';
+
+export interface DashboardRange {
+  period: string;
+  label: string;
+  from: string;
+  to: string;
 }
 
-export interface AuditoriaResumen {
+export interface DashboardEstadoCount {
   id: number;
-  fechaInicio: string;
-  fechaFin: string;
-  totalLeidos: number;
-  totalRegistrados: number;
-  totalDesconocidos: number;
-  usuarioId: number | null;
-  usuarioNombre: string | null;
-  usuarioUsername: string | null;
-  notas: string;
+  nombre: string;
+  color: string | null;
+  esActivo: boolean;
+  cantidad: number;
 }
 
-export interface AuditoriaDetalleItem {
+export interface PortalDeteccionResumen {
   id: number;
   tid: string;
-  epc: string;
-  registrado: boolean;
-  activoId: number | null;
+  detectadoAt: string;
+  antena: number | null;
+  rssi: number | null;
   sku: string | null;
   estado: string | null;
   estadoColor: string | null;
+}
+
+export interface PortalDeteccion extends PortalDeteccionResumen {
+  activoId: number | null;
+  tipo: string;
+  eventoLectorId: number | null;
+  createdAt: string;
   ubicacion: string | null;
 }
 
-export interface AuditoriaCompleta extends AuditoriaResumen {
-  detalle: AuditoriaDetalleItem[];
+export interface DashboardData {
+  range: DashboardRange;
+  activos: {
+    total: number;
+    activas: number;
+    inactivas: number;
+    porEstado: DashboardEstadoCount[];
+  };
+  portal: {
+    salidasDenegadas: number;
+    salidasPeriodoAnterior: number;
+    periodoAnteriorLabel: string;
+    noRegistradas: number;
+    porDia: { fecha: string; cantidad: number }[];
+    ultimaDeteccionAt: string | null;
+    ultimasDetecciones: PortalDeteccionResumen[];
+  };
+  generatedAt: string;
+}
+
+export interface PortalAlertPayload {
+  kind: 'denied' | 'denied_batch';
+  count?: number;
+  totalEnPeriodo?: number | null;
+  deteccion: PortalDeteccion;
+  detecciones?: PortalDeteccion[];
 }
 
 export const PERMISSION_TAB_MAP: Record<SidebarTab, string[]> = {
-  activos: ['inventario.ver', 'activos.crear'],
-  auditoria: ['auditoria.ejecutar', 'auditoria.ver_historial'],
-  sincronizar: ['sync.ejecutar', 'sync.ver_historial'],
+  dashboard: [P.dashboardVer],
+  activos: [P.inventarioVer, P.activosCrear],
+  sincronizar: [P.syncEjecutar, P.syncVerHistorial, P.syncControlApp],
   configuracion: [
-    'config.sku',
-    'config.estados',
-    'config.ubicaciones',
-    'config.propiedades',
-    'inventario.columnas',
-    'sync.ejecutar',
-    'sync.ver_historial',
-    'usuarios.ver',
-    'usuarios.gestionar',
-    'roles.gestionar',
+    P.configSku,
+    P.configEstados,
+    P.configUbicaciones,
+    P.configPropiedades,
+    P.inventarioColumnas,
+    P.syncEjecutar,
+    P.syncVerHistorial,
+    P.syncControlApp,
+    P.usuariosVer,
+    P.usuariosGestionar,
+    P.rolesGestionar,
   ],
 };

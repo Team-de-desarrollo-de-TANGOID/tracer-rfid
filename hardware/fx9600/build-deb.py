@@ -19,6 +19,9 @@ FILES = [
     "RestAPI.py",
     "Logger.py",
     "INIFile.py",
+    "AllowList.py",
+    "Secrets.py",
+    "UserAppServer.py",
     "config.ini",
     "start_racketclub-gate.sh",
     "stop_racketclub-gate.sh",
@@ -70,13 +73,12 @@ def build_deb(out_path: Path) -> Path:
         staging.mkdir()
         for fname in FILES:
             shutil.copy2(PKG / fname, staging / fname)
-        _normalize_text(CONTROL)
         for path in staging.iterdir():
             _normalize_text(path)
             if path.suffix in {".sh", ".py"} or path.name == "racketclub-gate":
                 path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
-        control_payload = CONTROL.read_bytes()
+        control_payload = CONTROL.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
         data_members = []
         for path in sorted(staging.iterdir()):
             mode = path.stat().st_mode & 0o777

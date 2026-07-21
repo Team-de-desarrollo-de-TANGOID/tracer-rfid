@@ -1,6 +1,8 @@
-# FX9600 User App — Fase 1 (igual que Tag-Detection GEC)
+# FX9600 User App — racketclub-gate
 
 Basado en `FX9600/gec-IoT-TagDetection-master-base`. **No hay que tocar IoT Connector ni cloud en la consola web.**
+
+> Credenciales del lector y acceso al panel Zebra: [docs/CREDENCIALES.md](../../docs/CREDENCIALES.md) y [docs/ACCESO-PANELES.md](../../docs/ACCESO-PANELES.md).
 
 ## Cómo funciona (igual que el proyecto base)
 
@@ -42,16 +44,20 @@ Consola Zebra → Applications → `racketclub-gate_1.0.3-fase1_all.deb` → Sta
 
 ### Detener la app
 
-1. En Applications: **desmarcar AutoStart** → **Stop**
-2. O desde la PC:
+**Por qué a veces no responde Stop en Zebra:** suele haber **AutoStart** activo (reinicia sola) y/o una **copia huérfana** iniciada por SSH (`nohup`) que la consola Zebra no controla.
+
+1. **Desde Racket Club (recomendado):** Configuración → Lector de puerta → Estado → Resumen  
+   - Ingrese **contraseña SSH (rfidadm)** → **Detener app**  
+   - Crea `/apps/.racketclub-gate-stopped`, apaga AutoStart, mata procesos y libera el puerto 8765.
+2. En Applications de Zebra: **desmarcar AutoStart** → **Stop**
+3. Por SSH: `/apps/stop_racketclub-gate.sh`
+4. Desde la PC:
 
 ```powershell
 $env:FX9600_IP = "169.254.240.149"
 $env:FX9600_PASSWORD = "tu_password"
 node hardware/fx9600/scripts/stop-gate-app.js
 ```
-
-3. O por SSH: `/apps/stop_racketclub-gate.sh`
 
 ## Probar
 
@@ -62,10 +68,37 @@ tail -f /tmp/racketclub-gate.log
 
 ## Roadmap
 
-1. **Fase 1** — log de TID (actual)
-2. Allow-list local
-3. API sync PC
-4. Monitor PC
+1. **Fase 1** — log de TID
+2. **Fase 2** — API REST :8765, lista local, alertas portal, sync web app, token API (**actual**)
+3. Monitor PC (web app integrado)
+4. Baliza GPO en producción (`AlertViaGpo=True` en `config.ini`)
+
+## API User App (puerto 8765)
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | `/api/health` | No | Probe de vida |
+| GET | `/api/status` | Token | PID, versión, count lista |
+| GET | `/api/allowlist` | Token | TIDs en el lector |
+| POST | `/api/sync` | Bootstrap* | `{ tids, version, gpoPin, apiToken }` |
+| GET | `/api/logs?offset=&maxBytes=` | Token | Fragmento del log (legacy) |
+| GET | `/api/logs/stream?tail=` | Token | **Stream SSE tail -f en vivo** |
+| GET | `/api/tag-events?since=` | Token | Eventos estructurados |
+| POST | `/api/shutdown` | Token | Detiene la User App de forma ordenada |
+| POST | `/api/credentials` | Bootstrap* | Credenciales admin + token |
+
+\* Si no hay token configurado, el primer `POST /api/sync` con `apiToken` lo establece.
+
+Header: `X-RacketClub-Token: <token>` (la web app lo envía automáticamente tras sync).
+
+## Lógica del portal
+
+La lista sincronizada contiene activos **activos** que **no pueden salir** (`permite_salida=0`).
+
+- TID **en la lista** → `LECTURA denegada` + alerta (GPO simulado en logs por defecto)
+- TID **fuera de la lista** → `LECTURA autorizada`
+
+Para activar baliza física en producción: `AlertViaGpo=True` en `[API]` de `config.ini`.
 
 ## Error: `LLRP is configured as data endpoint` (422)
 

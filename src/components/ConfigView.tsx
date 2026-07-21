@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import ConfigActivosTab from './ConfigActivosTab';
 import Fx9600ConnectionPanel from './Fx9600ConnectionPanel';
 import UsersRolesView from './UsersRolesView';
+import { UnsavedChangesProvider } from '../context/UnsavedChangesContext';
 import type { ConfigSection, Estado, Sku, Ubicacion } from '../types';
 
 const SECTION_META: Record<ConfigSection, { title: string; description: string }> = {
@@ -76,7 +77,8 @@ export default function ConfigView({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#f8fafc]">
+    <UnsavedChangesProvider>
+      <div className="flex flex-col h-full overflow-hidden bg-[#f8fafc]">
       <header className="px-8 py-6 bg-white border-b border-[#e2e8f0] shrink-0">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-600 m-0">
           Configuración
@@ -112,11 +114,8 @@ export default function ConfigView({
             />
           </div>
         ) : section === 'lector-puerta' ? (
-          <div className="p-8 flex-1 min-h-0 overflow-hidden">
-            <Fx9600ConnectionPanel
-              canEdit={permissions.syncConfig}
-              showMonitor={permissions.syncMonitor}
-            />
+          <div className="p-8 flex-1 min-h-0 overflow-hidden h-full">
+            <Fx9600ConnectionPanel showMonitor={permissions.syncMonitor} />
           </div>
         ) : (
           <UsersRolesView
@@ -127,6 +126,7 @@ export default function ConfigView({
           />
         )}
       </div>
-    </div>
+      </div>
+    </UnsavedChangesProvider>
   );
 }

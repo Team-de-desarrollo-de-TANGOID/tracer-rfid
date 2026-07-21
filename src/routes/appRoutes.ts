@@ -2,9 +2,9 @@ import type { ActivosSection, ConfigSection, SidebarTab } from '../types';
 import { ACTIVOS_SECTIONS, CONFIG_SECTIONS } from '../types';
 
 export const APP_PATHS = {
+  dashboard: '/',
   activosInventario: '/activos/inventario',
   activosAgregar: '/activos/agregar',
-  auditoria: '/auditoria',
   sincronizar: '/sincronizar',
   config: (section: ConfigSection = 'catalogos') => `/configuracion/${section}`,
 } as const;
@@ -29,6 +29,8 @@ export interface ParsedAppPath {
 export function parseAppPath(pathname: string): ParsedAppPath {
   const segments = pathname.replace(/\/+$/, '').split('/').filter(Boolean);
 
+  if (segments.length === 0) return { tab: 'dashboard' };
+
   if (segments[0] === 'activos') {
     if (segments[1] === 'agregar') return { tab: 'activos', activosSection: 'agregar' };
     if (!segments[1] || segments[1] === 'inventario') {
@@ -43,7 +45,7 @@ export function parseAppPath(pathname: string): ParsedAppPath {
     return { tab: 'configuracion', configSection: segments[1] };
   }
 
-  if (segments[0] === 'auditoria') return { tab: 'auditoria' };
+  if (segments[0] === 'dashboard') return { tab: 'dashboard' };
   if (segments[0] === 'sincronizar') return { tab: 'sincronizar' };
 
   return { tab: null };
@@ -58,10 +60,10 @@ export function pathForTab(
   sub?: ActivosSection | ConfigSection
 ): string {
   switch (tab) {
+    case 'dashboard':
+      return APP_PATHS.dashboard;
     case 'activos':
       return pathForActivosSection(sub === 'agregar' ? 'agregar' : 'inventario');
-    case 'auditoria':
-      return APP_PATHS.auditoria;
     case 'sincronizar':
       return APP_PATHS.sincronizar;
     case 'configuracion':
@@ -74,7 +76,7 @@ export function getDefaultAppPath(
   canAccessActivosSection: (section: ActivosSection) => boolean,
   canAccessConfigSection: (section: ConfigSection) => boolean
 ): string {
-  const tabOrder: SidebarTab[] = ['activos', 'auditoria', 'sincronizar', 'configuracion'];
+  const tabOrder: SidebarTab[] = ['dashboard', 'activos', 'sincronizar', 'configuracion'];
 
   for (const tab of tabOrder) {
     if (!canAccessTab(tab)) continue;
@@ -94,7 +96,7 @@ export function getDefaultAppPath(
     return pathForTab(tab);
   }
 
-  return APP_PATHS.activosInventario;
+  return APP_PATHS.dashboard;
 }
 
 export function isPathAllowed(

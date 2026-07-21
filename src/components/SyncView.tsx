@@ -13,11 +13,11 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import ReaderAllowListSection from './ReaderAllowListSection';
+import { PermAction, usePerm } from './PermAction';
+import { P } from '../constants/permissions';
 
 interface Props {
   onSynced: () => void;
-  canSync?: boolean;
-  canViewAllowList?: boolean;
   onOpenConfig?: () => void;
 }
 
@@ -32,10 +32,9 @@ function SummaryRow({ label, value }: { label: string; value: ReactNode }) {
 
 export default function SyncView({
   onSynced,
-  canSync = true,
-  canViewAllowList = true,
   onOpenConfig,
 }: Props) {
+  const { allowed: canViewAllowList } = usePerm([P.syncVerHistorial, P.syncEjecutar]);
   const [syncing, setSyncing] = useState(false);
   const [statusLoading, setStatusLoading] = useState(true);
   const [listRefreshKey, setListRefreshKey] = useState(0);
@@ -276,11 +275,12 @@ export default function SyncView({
                   </ul>
                 </div>
 
-                <button
-                  type="button"
-                  disabled={syncing || !canSync || (!demoMode && !hasReaderConfig)}
+                <PermAction
+                  permission={P.syncEjecutar}
+                  disabled={syncing || (!demoMode && !hasReaderConfig)}
                   onClick={handleSync}
                   className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm cursor-pointer disabled:opacity-60 shadow-sm"
+                  lockedClassName="bg-slate-400 hover:bg-slate-400"
                 >
                   {syncing ? (
                     <Loader2 size={20} className="animate-spin" />
@@ -288,7 +288,7 @@ export default function SyncView({
                     <CloudUpload size={20} />
                   )}
                   {syncing ? 'Enviando etiquetas…' : 'Sincronizar ahora'}
-                </button>
+                </PermAction>
 
                 {result && (
                   <div

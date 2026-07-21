@@ -15,7 +15,8 @@ import Sidebar from './components/Sidebar';
 import LoginView from './components/LoginView';
 import InventoryView from './components/InventoryView';
 import AddAssetView from './components/AddAssetView';
-import AuditView from './components/AuditView';
+import DashboardView from './components/DashboardView';
+import PortalAlertPopup from './components/PortalAlertPopup';
 import SyncView from './components/SyncView';
 import ConfigView from './components/ConfigView';
 import DemoBanner from './components/DemoBanner';
@@ -30,6 +31,7 @@ import type {
   Ubicacion,
 } from './types';
 import { ACTIVOS_SECTIONS, CONFIG_SECTIONS, PERMISSION_TAB_MAP } from './types';
+import { P } from './constants/permissions';
 import {
   APP_PATHS,
   getDefaultAppPath,
@@ -153,16 +155,16 @@ export default function App() {
     if (!user) return;
     try {
       setError(null);
-      const canLoadInventario = hasPermission('inventario.ver') || hasPermission('auditoria.ejecutar');
+      const canLoadInventario = hasPermission(P.inventarioVer);
       const promises: Promise<unknown>[] = [
         canLoadInventario ? api.getActivos() : Promise.resolve([]),
         api.getEstados(),
-        hasPermission('activos.crear', 'config.sku') ? api.getSkus() : Promise.resolve([]),
+        hasPermission(P.activosCrear, P.configSku) ? api.getSkus() : Promise.resolve([]),
         api.getUbicacionesAll().catch(() => api.getUbicaciones()),
-        hasPermission('inventario.ver')
+        hasPermission(P.inventarioVer)
           ? api.getStats()
           : Promise.resolve({ total: 0, activas: 0, inactivas: 0 }),
-        canLoadInventario || hasPermission('inventario.columnas')
+        canLoadInventario || hasPermission(P.inventarioColumnas)
           ? api.getInventarioColumnas()
           : Promise.resolve(null),
       ];
@@ -183,7 +185,7 @@ export default function App() {
 
   const refreshColumnas = useCallback(async () => {
     if (!user) return;
-    if (!hasPermission('inventario.ver') && !hasPermission('inventario.columnas')) return;
+    if (!hasPermission(P.inventarioVer) && !hasPermission(P.inventarioColumnas)) return;
     try {
       const cols = await api.getInventarioColumnas();
       setColumnasConfig(cols);
@@ -229,15 +231,18 @@ export default function App() {
 
   const configPermissions = useMemo(
     () => ({
-      sku: hasPermission('config.sku'),
-      estados: hasPermission('config.estados'),
-      ubicaciones: hasPermission('config.ubicaciones'),
-      propiedades: hasPermission('config.propiedades'),
-      syncConfig: hasPermission('sync.ejecutar'),
-      syncMonitor: hasPermission('sync.ver_historial') || hasPermission('sync.ejecutar'),
-      manageUsers: hasPermission('usuarios.gestionar'),
-      manageRoles: hasPermission('roles.gestionar'),
-      viewUsers: hasPermission('usuarios.ver'),
+      sku: hasPermission(P.configSku),
+      estados: hasPermission(P.configEstados),
+      ubicaciones: hasPermission(P.configUbicaciones),
+      propiedades: hasPermission(P.configPropiedades),
+      syncConfig: hasPermission(P.syncEjecutar),
+      syncMonitor:
+        hasPermission(P.syncVerHistorial) ||
+        hasPermission(P.syncEjecutar) ||
+        hasPermission(P.syncControlApp),
+      manageUsers: hasPermission(P.usuariosGestionar),
+      manageRoles: hasPermission(P.rolesGestionar),
+      viewUsers: hasPermission(P.usuariosVer),
     }),
     [hasPermission]
   );
@@ -266,8 +271,14 @@ export default function App() {
         canAccessConfigSection={canAccessConfigSection}
         demoMode={demoMode}
         canCheckReader={
-          hasPermission('sync.ver_historial') || hasPermission('sync.ejecutar')
+          hasPermission(P.syncVerHistorial) ||
+          hasPermission(P.syncEjecutar) ||
+          hasPermission(P.syncControlApp)
         }
+      />
+
+      <PortalAlertPopup
+        enabled={hasPermission(P.dashboardAlertas, P.dashboardVer)}
       />
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
@@ -284,7 +295,22 @@ export default function App() {
         ) : (
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
-              <Route path="/" element={<Navigate to={defaultPath} replace />} />
+              <Route
+                path="/"
+                element={
+                  canAccessTab('dashboard') ? (
+                    <AnimatedPage>
+                      <DashboardView />
+                    </AnimatedPage>
+                  ) : (
+                    <Navigate to={defaultPath} replace />
+                  )
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={<Navigate to="/" replace />}
+              />
               <Route
                 path="/activos/inventario"
                 element={
@@ -311,8 +337,9 @@ export default function App() {
                           await refresh();
                         }}
                         onBatchDelete={async (ids) => {
-                          await api.deleteActivosLote(ids);
+                          const result = await api.deleteActivosLote(ids);
                           await refresh();
+                          return result;
                         }}
                         onUpdateActivo={async (id, body) => {
                           await api.updateActivo(id, body);
@@ -322,12 +349,6 @@ export default function App() {
                           const cfg = await api.saveInventarioColumnas(columnas);
                           setColumnasConfig(cfg);
                         }}
-                        canEdit={hasPermission('activos.editar')}
-                        canChangeEstado={hasPermission('activos.cambiar_estado')}
-                        canDelete={hasPermission('activos.eliminar')}
-                        canConfigColumnas={hasPermission('inventario.columnas')}
-                        canVerHistorial={hasPermission('activos.ver_historial')}
-                        canQuickEdit={hasPermission('activos.edicion_rapida')}
                       />
                     </AnimatedPage>
                   ) : (
@@ -356,45 +377,12 @@ export default function App() {
                 }
               />
               <Route
-                path="/auditoria"
-                element={
-                  canAccessTab('auditoria') ? (
-                    <AnimatedPage>
-                      <AuditView
-                        activos={activos}
-                        columnasConfig={columnasConfig}
-                        onSaveColumnas={async (columnas) => {
-                          const cfg = await api.saveInventarioColumnas(columnas);
-                          setColumnasConfig(cfg);
-                        }}
-                        canConfigColumnas={hasPermission('inventario.columnas')}
-                        canGoToInventario={hasPermission('inventario.ver')}
-                        canGuardarAuditoria={hasPermission('auditoria.ejecutar')}
-                        canVerHistorial={
-                          hasPermission('auditoria.ver_historial') ||
-                          hasPermission('auditoria.ejecutar')
-                        }
-                        onGoToRecord={(activo) => {
-                          navigate(`${APP_PATHS.activosInventario}?activo=${activo.id}`);
-                        }}
-                      />
-                    </AnimatedPage>
-                  ) : (
-                    <Navigate to={defaultPath} replace />
-                  )
-                }
-              />
-              <Route
                 path="/sincronizar"
                 element={
                   canAccessTab('sincronizar') ? (
                     <AnimatedPage>
                       <SyncView
                         onSynced={refresh}
-                        canSync={hasPermission('sync.ejecutar')}
-                        canViewAllowList={
-                          hasPermission('sync.ver_historial') || hasPermission('sync.ejecutar')
-                        }
                         onOpenConfig={
                           canAccessTab('configuracion')
                             ? () => navigate(APP_PATHS.config('lector-puerta'))

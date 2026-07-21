@@ -1,6 +1,10 @@
-/** Normaliza un TID para comparación y almacenamiento. */
+/** Normaliza un TID para comparación y almacenamiento (quita padding 00 del lector). */
 export function normalizeTid(raw: string): string {
-  return raw.trim().toUpperCase();
+  let t = raw.trim().toUpperCase();
+  while (t.length >= 10 && t.endsWith('00')) {
+    t = t.slice(0, -2);
+  }
+  return t;
 }
 
 /** Extrae TIDs únicos desde texto pegado (saltos de línea, comas, espacios). */

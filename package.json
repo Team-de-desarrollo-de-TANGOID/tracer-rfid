@@ -23,8 +23,9 @@
     "test:fx9600": "node scripts/test-fx9600-sync.mjs",
     "test:fx9600:sync": "node scripts/test-fx9600-sync.mjs --sync",
     "pack:portable": "npm run build && electron-builder --win portable",
+    "pack:installer": "npm run build && electron-builder --win nsis",
     "pack:folder": "npm run build && electron-builder --win dir",
-    "pack:all": "npm run build && electron-builder --win portable dir"
+    "pack:all": "npm run build && electron-builder --win portable dir nsis"
   },
   "build": {
     "appId": "com.tangoid.racketclub.demo",
@@ -41,10 +42,12 @@
     ],
     "asarUnpack": [
       "dist/**/*",
-      "server/**/*",
       "node_modules/better-sqlite3/**/*",
       "node_modules/bindings/**/*",
-      "node_modules/file-uri-to-path/**/*"
+      "node_modules/file-uri-to-path/**/*",
+      "node_modules/ssh2/**/*",
+      "node_modules/cpu-features/**/*",
+      "node_modules/buildcheck/**/*"
     ],
     "extraFiles": [
       {
@@ -59,6 +62,12 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "signAndEditExecutable": false
@@ -67,7 +76,11 @@
       "artifactName": "RacketClub-Trazabilidad-demo-portable.exe"
     },
     "nsis": {
-      "oneClick": false
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "RacketClub-Trazabilidad-Setup-${version}.exe"
     }
   },
   "dependencies": {
@@ -80,7 +93,8 @@
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "react-router-dom": "^7.18.1"
+    "react-router-dom": "^7.18.1",
+    "ssh2": "^1.17.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.14",

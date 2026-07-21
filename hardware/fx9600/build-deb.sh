@@ -6,7 +6,8 @@ if command -v dpkg-deb >/dev/null 2>&1; then
   rm -rf "$BUILD"
   mkdir -p "$BUILD/DEBIAN"
   cp "$ROOT/pkg/DEBIAN/control" "$BUILD/DEBIAN/"
-  for f in racketclub_gate.py racketclub-gate RestAPI.py Logger.py INIFile.py config.ini \
+  for f in racketclub_gate.py racketclub-gate RestAPI.py Logger.py INIFile.py \
+    AllowList.py Secrets.py UserAppServer.py config.ini \
     start_racketclub-gate.sh stop_racketclub-gate.sh; do
     cp "$ROOT/pkg/$f" "$BUILD/"
   done
