@@ -1,11 +1,15 @@
 node_modules/
 dist/
 release/
+release-v2/
+release-*/
 release-build/
 release-build-*/
 release-demo/
 release-demo-*/
 *.exe
+*.7z
+*.blockmap
 data/*.db
 data/*.db-*
 *.log
