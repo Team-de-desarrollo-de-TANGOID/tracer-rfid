@@ -2,11 +2,19 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { getDb } from '../db.js';
 import { authMiddleware, requirePermission } from '../middleware/auth.js';
-import { ADMIN_ROLE_NAME } from '../constants/permissions.js';
+import { ADMIN_ROLE_NAME, ADMIN_USERNAME } from '../constants/permissions.js';
 
 const router = Router();
 
 router.use(authMiddleware);
+
+function isSystemAdminUser(user) {
+  return (
+    String(user?.username || '').localeCompare(ADMIN_USERNAME, undefined, {
+      sensitivity: 'accent',
+    }) === 0
+  );
+}
 
 router.get('/', requirePermission('usuarios.ver', 'usuarios.gestionar'), (_req, res) => {
   const rows = getDb()
@@ -24,6 +32,11 @@ router.post('/', requirePermission('usuarios.gestionar'), (req, res) => {
   const { username, password, nombre, rolId } = req.body ?? {};
   if (!username?.trim() || !password || !rolId) {
     return res.status(400).json({ error: 'Usuario, contraseña y rol son obligatorios.' });
+  }
+  if (isSystemAdminUser({ username: username.trim() })) {
+    return res.status(400).json({
+      error: `El usuario "${ADMIN_USERNAME}" es reservado del sistema.`,
+    });
   }
   const db = getDb();
   const rol = db.prepare('SELECT id FROM roles WHERE id = ?').get(rolId);
@@ -58,21 +71,42 @@ router.patch('/:id', requirePermission('usuarios.gestionar'), (req, res) => {
   if (!cur) return res.status(404).json({ error: 'Usuario no encontrado.' });
 
   const { nombre, rolId, activo, password } = req.body ?? {};
+  const systemUser = isSystemAdminUser(cur);
+
+  if (systemUser && activo === false) {
+    return res.status(400).json({
+      error: 'El usuario Administrador del sistema no puede desactivarse.',
+    });
+  }
+  if (systemUser && rolId !== undefined && Number(rolId) !== cur.rol_id) {
+    return res.status(400).json({
+      error: 'No se puede cambiar el rol del usuario Administrador del sistema.',
+    });
+  }
+
   if (rolId !== undefined) {
     const rol = db.prepare('SELECT id FROM roles WHERE id = ?').get(rolId);
     if (!rol) return res.status(400).json({ error: 'Rol no válido.' });
   }
 
-  // No desactivar al único admin del rol sistema
   if (activo === false && cur.id === req.user.id) {
     return res.status(400).json({ error: 'No puede desactivar su propia cuenta.' });
   }
 
   const updates = [];
   const params = [];
-  if (nombre !== undefined) { updates.push('nombre = ?'); params.push(nombre.trim()); }
-  if (rolId !== undefined) { updates.push('rol_id = ?'); params.push(rolId); }
-  if (activo !== undefined) { updates.push('activo = ?'); params.push(activo ? 1 : 0); }
+  if (nombre !== undefined) {
+    updates.push('nombre = ?');
+    params.push(nombre.trim());
+  }
+  if (rolId !== undefined) {
+    updates.push('rol_id = ?');
+    params.push(rolId);
+  }
+  if (activo !== undefined) {
+    updates.push('activo = ?');
+    params.push(activo ? 1 : 0);
+  }
   if (password) {
     updates.push('password_hash = ?');
     params.push(bcrypt.hashSync(password, 10));
@@ -97,6 +131,11 @@ router.delete('/:id', requirePermission('usuarios.gestionar'), (req, res) => {
   const db = getDb();
   const cur = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(req.params.id);
   if (!cur) return res.status(404).json({ error: 'Usuario no encontrado.' });
+  if (isSystemAdminUser(cur)) {
+    return res.status(400).json({
+      error: 'El usuario Administrador del sistema no puede eliminarse.',
+    });
+  }
   if (cur.id === req.user.id) {
     return res.status(400).json({ error: 'No puede eliminar su propia cuenta.' });
   }
@@ -124,6 +163,7 @@ function mapUsuario(row) {
     rolId: row.rol_id,
     rolNombre: row.rol_nombre,
     createdAt: row.created_at,
+    esSistema: isSystemAdminUser(row),
   };
 }
 

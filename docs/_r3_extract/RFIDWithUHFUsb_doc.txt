@@ -1,0 +1,1771 @@
+
+
+RFIDWithUHFUsb
+
+JavaScript is disabled on your browser.
+
+Skip navigation links
+
+Overview
+Package
+Class
+Tree
+Deprecated
+Index
+Help
+
+Prev Class
+Next Class
+
+Frames
+No Frames
+
+All Classes
+
+Summary: 
+Nested | 
+Field | 
+Constr | 
+Method
+
+Detail: 
+Field | 
+Constr | 
+Method
+
+com.rscja.deviceapi
+Class RFIDWithUHFUsb
+
+java.lang.Object
+
+com.rscja.deviceapi.Device
+
+com.rscja.deviceapi.RFIDWithUHFBase
+
+com.rscja.deviceapi.RFIDWithUHFUsb
+
+All Implemented Interfaces:
+IMultipleAntenna, IUHF
+
+Direct Known Subclasses:
+RFIDWithUHFUsbOfIR
+
+public class RFIDWithUHFUsb
+extends RFIDWithUHFBase
+implements IUHF, IMultipleAntenna
+UHF模块USB通信操作类
+
+ UHF module operation type
+
+ 
+
+ 
+
+ 注意事项:
+
+ 1. App工程需要导入jna-5.4.0.jar 和  jna-platform-5.4.0.jar 
+
+ The App project needs to import jna-5.4.0.jar and jna-platform-5.4.0.jar 
+
+ windows系统注意事项:
+
+ 2. 需要依赖,UHFAPI.dll ，将这两个文件保存到程序根目录。也可以通过调用setDllOrSOFilePath函数来设置要加载的dll路径。
+
+ 2. Need to depend on, UHFAPI.dll, save these two files to the program root directory. You can also set the dll path to load by calling the setDllOrSOFilePath function. 
+
+ Linux系统注意事项:
+
+ 2.需要依赖 libTagReader.so ，将这个文件保存到命令行根目录。也可以通过调用setDllOrSOFilePath函数来设置要加载的so路径
+
+ 2. Need to depend on, libTagReader.so, save these two files to the program root directory. You can also set the so path to load by calling the setDllOrSOFilePath function. 
+
+ 
+
+ 
+
+    Example Usage:
+
+        public void UHFReaderTest(){
+
+            usb=RFIDWithUHFUsb.getInstance();
+
+                //connect USB
+
+                boolean isOpen =usb.init(null);
+
+                if(isOpen){
+
+                         //connect success
+
+                         //set up parameters
+
+                         //usb.setPower(xx);    
+
+                         //usb.setFrequencyMode(xx)
+
+                         //.........
+
+                          
+
+                           usb.setInventoryCallback(new IUHFInventoryCallback(){
+
+                                  public void callback(UHFTAGInfo uhftagInfo) {
+
+                                         
+
+                                        //uhftagInfo.getEPC();
+
+                                        //uhftagInfo.getRssi();
+
+                                        //...
+
+                                        
+
+                                }
+
+                        });
+
+                        
+
+                        if(usb.startInventoryTag()){
+
+            
+
+                        }
+                        //......................
+
+                        usb.stopInventory();
+
+                } 
+
+                
+
+                //disconnect usb
+
+                usb.free();
+
+                        
+
+     }
+
+Field Summary
+
+Fields inherited from interface com.rscja.deviceapi.interfaces.IUHF
+
+Bank_EPC, Bank_RESERVED, Bank_TID, Bank_USER, LockBank_ACCESS, LockBank_EPC, LockBank_KILL, LockBank_TID, LockBank_USER, LockMode_LOCK, LockMode_OPEN, LockMode_PLOCK, LockMode_POPEN
+
+Method Summary
+
+All Methods Static Methods Instance Methods Concrete Methods 
+
+Modifier and Type
+Method and Description
+
+boolean
+blockWriteData(java.lang.String accessPwd,
+              int bank,
+              int ptr,
+              int cnt,
+              java.lang.String writeData)
+将数据写入标签(支持大数据标签写入)、当需要写入的标签数据比较大可以使用此函数写入(Write data into tag(support big-sized data writing), user could use this function when big-sized data need to be written.)
+
+boolean
+blockWriteData(java.lang.String accessPwd,
+              int filterBank,
+              int filterPtr,
+              int filterCnt,
+              java.lang.String filterData,
+              int bank,
+              int ptr,
+              int cnt,
+              java.lang.String writeData)
+将数据写入指定标签(支持大数据标签写入)、当需要写入的标签数据比较大可以使用此函数写入(Write data into tag(support big-sized data writing), user could use this function when big-sized data need to be written.)
+
+boolean
+eraseData(java.lang.String accessPwd,
+         int bank,
+         int ptr,
+         int cnt)
+擦除数据，被擦除的数据块其内容将被设置成0.
+
+boolean
+eraseData(java.lang.String accessPwd,
+         int filterBank,
+         int filterPtr,
+         int filterCnt,
+         java.lang.String filterData,
+         int bank,
+         int ptr,
+         int cnt)
+擦除指定标签的数据，被擦除的数据块其内容将被设置成0.(Clean specific tag data, data block after cleaned will be set to 0.
+
+boolean
+free()
+断开UHF模块(Disconnect the UHF module)
+
+java.lang.String
+generateLockCode(java.util.ArrayList<java.lang.Integer> lockBank,
+                int lockMode)
+获取锁定码(Get lock code)
+
+ 示例代码:比如锁定EPC区和USER区  (Sample code: such as locking EPC area and USER area)
+                List lockBank=new ArrayList<>();
+                lockBank.add(IUHF.LockBank_EPC);
+                lockBank.add(IUHF.LockBank_USER);
+                int lockMode =IUHF.LockMode_LOCK;
+                String hexLockCode=generateLockCode(lockBank,lockMode);
+
+java.util.List<AntennaState>
+getAntenna()
+获取天线启用状态(Get the antenna enable status)
+
+char[]
+getBeep()
+获取蜂鸣器的状态(Get the status of the buzzer)
+
+ConnectionState
+getConnectStatus()
+获取连接状态(get connection status)
+
+int
+getCW()
+获取蜂鸣器的状态(Get the status of the buzzer)
+
+java.lang.String
+getDeviceID() 
+
+InventoryModeEntity
+getEPCAndTIDUserMode()
+获取当前设置的盘点模式 (Get the currently set inventory mode)
+
+FastInventoryEntity
+getFastInventoryMode() 
+
+int
+getFrequencyMode()
+读取模块的频率
+
+ Read frequency mode of module
+
+Gen2Entity
+getGen2()
+获取GEN2参数值(Get GEN2 parameter value)
+
+static RFIDWithUHFUsb
+getInstance()
+获取UHF操作实例
+
+ Acquire UHF operation Instance
+
+int
+getPower(AntennaNameEnum ant)
+读取单个天线功率(Read the power of a single antenna)
+
+java.util.List<AntennaPowerEntity>
+getPowerAll()
+获取所有天线功率(Read the power of all antenna)
+
+int
+getProtocol()
+获取协议(Get the protocol)
+
+int[]
+getPwm()
+获取占空比 (Get the duty cycle)
+
+int
+getRFLink()
+获取链路参数
+
+ acquire link parameter
+
+int
+getTemperature()
+获取UHF模块温度 (Get UHF module temperature)
+
+java.lang.String
+getVersion()
+读取UHF模块版本号(Read UHF module version)
+
+boolean
+init(java.lang.String path)
+连接UHF模块(Connect UHF module)
+
+UHFTAGInfo
+inventorySingleTag()
+单次盘点标签(Single Inventory Label)
+
+boolean
+isInventorying() 
+
+boolean
+killTag(java.lang.String killPwd)
+销毁指定标签 ,默认密码(0x00 0x00 0x00 0x00)不能执行销毁
+
+ Destroy the label, the default password (0x00 0x00 0x00 0x00) cannot be destroyed
+
+boolean
+killTag(java.lang.String killPwd,
+       int filterBank,
+       int filterPtr,
+       int filterCnt,
+       java.lang.String filterData)
+销毁指定标签 ,默认密码(0x00 0x00 0x00 0x00)不能执行销毁
+
+ Destroy the specified label, the default password (0x00 0x00 0x00 0x00) cannot be destroyed
+
+boolean
+lockMem(java.lang.String accessPwd,
+       int bank,
+       int ptr,
+       int cnt,
+       java.lang.String filterData,
+       java.lang.String lockCode)
+锁指定标签(Lock specified label)
+ 示例代码:比如锁定EPC区和USER区  (Sample code: such as locking EPC area and USER area)
+                List lockBank=new ArrayList<>();
+                lockBank.add(IUHF.LockBank_EPC);
+                lockBank.add(IUHF.LockBank_USER);
+                int lockMode =IUHF.LockMode_LOCK;
+                String hexLockCode=generateLockCode(lockBank,lockMode);
+            lockMem(accessPwd,bank,ptr,cnt,filterData,hexLockCode);
+
+boolean
+lockMem(java.lang.String accessPwd,
+       java.lang.String lockCode)
+锁标签(lock label)
+
+ 示例代码:比如锁定EPC区和USER区  (Sample code: such as locking EPC area and USER area)
+                List lockBank=new ArrayList<>();
+                lockBank.add(IUHF.LockBank_EPC);
+                lockBank.add(IUHF.LockBank_USER);
+                int lockMode =IUHF.LockMode_LOCK;
+                String hexLockCode=generateLockCode(lockBank,lockMode);
+            lockMem(accessPwd,hexLockCode);
+
+boolean
+marginRead(java.lang.String accessPwd,
+          FilterEntity filterEntity,
+          int bank,
+          int ptr,
+          int cnt,
+          java.lang.String marginReadData)
+MarginRead
+
+java.lang.String
+readData(java.lang.String accessPwd,
+        int bank,
+        int ptr,
+        int cnt)
+读取标签的数据(Read tag data)
+
+java.lang.String
+readData(java.lang.String accessPwd,
+        int filterBank,
+        int filterPtr,
+        int filterCnt,
+        java.lang.String filterData,
+        int bank,
+        int ptr,
+        int cnt)
+读取指定标签的数据(Read the data of the specified tag)
+
+UHFTAGInfo
+readTagFromBuffer()
+接收循环盘点的标签数据
+
+ Receive label data for cycle count
+
+ 创建一个子线程调用此方法获取标签数据，此方法非阻塞模式。此方法只负责从数据缓冲区获取标签数据，如果数据缓冲区没有标签数据，将返回NULL。
+
+ Create a child thread to call this method to get tag data, this method is non-blocking mode.
+
+boolean
+setAntenna(java.util.List<AntennaState> antStatus)
+设置天线启用状态(Set the antenna enable state)
+
+boolean
+setBeep(int mode)
+开关蜂鸣器，打开蜂鸣器后盘点到标签会响应蜂鸣器。(Turn the buzzer on and off, and the label will respond to the buzzer after turning on the buzzer.)
+
+void
+setConnectionStateCallback(ConnectionStateCallback btStateCallback)
+设置连接状态回调
+
+ Set connection state callback
+
+boolean
+setCW(int flag)
+设置连续波(continuous waves)
+
+void
+setDllOrSOFilePath(java.lang.String directory,
+                  java.lang.String fileName)
+设置加载的dll文件路径
+
+ Set the loaded dll file path
+ 备注:如果需要使用此函数，请在调用init函数之前调用此函数。
+
+ Note: If you need to use this function, please call this function before calling the init function.
+
+boolean
+setEPCAndTIDMode()
+设置盘点模式为EPC+TID，返回标签的EPC+TID数据 (Set the inventory mode to EPC+TID, and return the EPC+TID data of the label)
+
+boolean
+setEPCAndTIDUserMode(int user_prt,
+                    int user_len)
+设置盘点模式为EPC+TID+USER，返回标签的EPC+TID+USER数据 (Set the inventory mode to EPC+TID+USER, and return the EPC+TID+USER data of the label)
+
+boolean
+setEPCMode()
+设置盘点模式为EPC，只返回标签的EPC数据 (Set the inventory mode to EPC, and only return the EPC data of the label)
+
+boolean
+setFastID(boolean enalbe)
+开关FastID功能 (Switch FastID function)
+
+boolean
+setFastInventoryMode(FastInventoryEntity entity)
+setFastInventory
+
+boolean
+setFilter(int bank,
+         int ptr,
+         int cnt,
+         java.lang.String data)
+设置循环盘点符合过滤条件的标签，不符合过滤条件的标签将不会上传。注意：必须在循环盘点标签之前设置
+
+  Set up a round-robin inventory of tags that meet the filter conditions, and tags that do not meet the filter conditions will not be uploaded.
+
+boolean
+setFreHop(float fre)
+设置模块频点(Setup frequency Hop)
+
+boolean
+setFrequencyMode(byte freMode)
+设置模块的频率模式 
+
+ Setup frequency mode of module
+
+boolean
+setGen2(Gen2Entity entity)
+设置GEN2参数值 (Set GEN2 parameter value)
+
+void
+setInventoryCallback(IUHFInventoryCallback inventoryCallback)
+设置盘点回调接口，接收循环盘点到的标签数据
+
+ Set the inventory callback interface to receive the label data from the cyclic inventory
+
+ 备注：需要在开始循环盘点startInventoryTag() 之前调用此方法。
+
+ Note: This method needs to be called before starting the loop inventory startInventoryTag() .
+
+void
+setKeyEventCallback(KeyEventCallback keyEventCallback) 
+
+boolean
+setPower(AntennaNameEnum ant,
+        int power)
+设置天线功率 (Set the antenna power)
+
+boolean
+setProtectedModeAndShortRangeMode(java.lang.String accessPwd,
+                                 FilterEntity filterEntity,
+                                 boolean isEnalbeProtectedMode,
+                                 boolean isEnableShortRangeMode)
+Set Protected Mode And Short Range Mode
+
+boolean
+setProtocol(int protocol)
+设置协议(Set protocol)
+
+boolean
+setPwm(int WorkTime,
+      int WaitTime)
+设置占空比(Set the duty cycle)
+
+boolean
+setRFLink(int mode)
+设置链路参数
+
+ Setup RFlink
+
+boolean
+setTagFocus(boolean enalbe)
+开关TagFocus功能(Switch TagFocus function)
+
+boolean
+startInventoryTag()
+开始循环识别标签。 获取标签数据有两种方式，只能二选一，推荐使用方式一。
+
+ Begin looping through the identification labels.
+
+boolean
+startInventoryTag(InventoryParameter inventoryParameter) 
+
+byte[]
+startScanBarcode()
+startScanBarcode
+
+boolean
+stopInventory()
+停止循环盘点标签(Stop cycle count labels)
+
+boolean
+uhfBlockPermalock(java.lang.String accessPwd,
+                 int FilterBank,
+                 int FilterStartaddr,
+                 int FilterLen,
+                 java.lang.String FilterData,
+                 int ReadLock,
+                 int uBank,
+                 int uPtr,
+                 int uRange,
+                 byte[] uMaskbuf)
+数据块操作(Data block operation)
+
+boolean
+uhfJump2Boot()
+uhf固件进入boot模式准备升级,调用此函数后需要延时2秒再调用 uhfStartUpdate() (uhf firmware enters boot mode to prepare for upgrade)
+
+boolean
+uhfJump2BootToSTM32()
+uhf主板进入boot模式准备升级,调用此函数后需要延时2秒再调用 uhfStartUpdate() (uhf firmware enters boot mode to prepare for upgrade)
+
+boolean
+uhfStartUpdate()
+开始升级UHF固件,调用此函数后需要延时2秒再调用 uhfUpdating(byte[] buff)  (Start to upgrade UHF firmware)
+
+boolean
+uhfStopUpdate()
+停止升级UHF固件(Stop upgrading UHF firmware)
+
+boolean
+uhfUpdating(byte[] buff)
+发送uhf升级包 (Send uhf upgrade package)
+
+boolean
+writeData(java.lang.String accessPwd,
+         int bank,
+         int ptr,
+         int cnt,
+         java.lang.String data)
+将数据写入标签（write data to label）
+
+boolean
+writeData(java.lang.String accessPwd,
+         int filterBank,
+         int filterPtr,
+         int filterCnt,
+         java.lang.String filterData,
+         int bank,
+         int ptr,
+         int cnt,
+         java.lang.String writeData)
+将数据写入指定标签（write data to label）
+
+Methods inherited from class com.rscja.deviceapi.Device
+
+isPowerOn
+
+Methods inherited from class java.lang.Object
+
+equals, getClass, hashCode, notify, notifyAll, toString, wait, wait, wait
+
+Method Detail
+
+getInstance
+
+public static RFIDWithUHFUsb getInstance()
+获取UHF操作实例
+
+ Acquire UHF operation Instance
+
+Returns:
+RFIDWithUHFUsb
+
+setDllOrSOFilePath
+
+public void setDllOrSOFilePath(java.lang.String directory,
+                               java.lang.String fileName)
+设置加载的dll文件路径
+
+ Set the loaded dll file path
+ 备注:如果需要使用此函数，请在调用init函数之前调用此函数。
+
+ Note: If you need to use this function, please call this function before calling the init function.
+
+Parameters:
+directory - dll文件目录,如果文件目录为null，将采用可运行的jar文件执行路径
+
+                  dll file directory, if the file directory is null, the executable jar file execution path will be used
+fileName - dll文件名称，如果文件名为null，将使用默认文件名UHFAPI.dll
+
+                  dll file name, if the file name is null, the default file name UHFAPI.dll will be used
+
+isInventorying
+
+public boolean isInventorying()
+
+init
+
+public boolean init(java.lang.String path)
+连接UHF模块(Connect UHF module)
+
+Specified by:
+init in interface IUHF
+Parameters:
+path - is null
+Returns:
+true:成功(success)  false:失败(failure)
+
+free
+
+public boolean free()
+断开UHF模块(Disconnect the UHF module)
+
+Specified by:
+free in interface IUHF
+Returns:
+true:成功(success)  false:失败(failure)
+
+setConnectionStateCallback
+
+public void setConnectionStateCallback(ConnectionStateCallback btStateCallback)
+设置连接状态回调
+
+ Set connection state callback
+
+Specified by:
+setConnectionStateCallback in interface IUHF
+Overrides:
+setConnectionStateCallback in class RFIDWithUHFBase
+Parameters:
+btStateCallback - ConnectionStateCallback
+
+getVersion
+
+public java.lang.String getVersion()
+读取UHF模块版本号(Read UHF module version)
+
+Specified by:
+getVersion in interface IUHF
+Returns:
+返回模块版本，null为读取失败(returns the module version, null means read failure)
+
+getFrequencyMode
+
+public int getFrequencyMode()
+读取模块的频率
+
+ Read frequency mode of module
+
+Specified by:
+getFrequencyMode in interface IUHF
+Returns:
+返回工作模式，返回-1为失败 (return work mode, return -1 means failure) 
+
+                  0x01：China Standard(840~845MHz) 
+
+            0x02：China Standard2(920~925MHz)  
+
+            0x04：Europe Standard(865~868MHz)  
+
+            0x08：USA(902-928MHz)    
+
+            0x16：Korea(917~923MHz)     
+
+            0x32: Japan(916.8~920.8MHz) 
+
+            0x33: South Africa(915~919MHz)
+
+            0x34: New Zealand
+
+            0x80 Morocco
+
+setFrequencyMode
+
+public boolean setFrequencyMode(byte freMode)
+设置模块的频率模式 
+
+ Setup frequency mode of module
+
+Specified by:
+setFrequencyMode in interface IUHF
+Parameters:
+freMode - 0x01：China Standard(840~845MHz) 
+
+            0x02：China Standard2(920~925MHz)  
+
+            0x04：Europe Standard(865~868MHz)  
+
+            0x08：USA(902-928MHz)    
+
+            0x16：Korea(917~923MHz)     
+
+            0x32: Japan(916.8~920.8MHz) 
+
+            0x33: South Africa(915~919MHz)
+
+            0x34: New Zealand
+
+            0x80 Morocco
+
+Returns:
+true:成功(success) false:失败(failure)
+
+startInventoryTag
+
+public boolean startInventoryTag()
+开始循环识别标签。 获取标签数据有两种方式，只能二选一，推荐使用方式一。
+
+ Begin looping through the identification labels. There are two ways to obtain label data, only one of the two can be selected. It is recommended to use method one.
+
+ 
+
+ 方式一:通过 setInventoryCallback(IUHFInventoryCallback inventoryCallback) 这个回调接口获取标签数据，需要在开始盘点之前调用setInventoryCallback方法。
+
+  Method 1: Get the label data through the callback interface setInventoryCallback(IUHFInventoryCallback inventoryCallback), you need to call the setInventoryCallback method before starting the inventory.
+
+ 方式二:创建一个子线程，在子线程里面通过调用readTagFromBuffer()方法获取标签数据。详情请参见readTagFromBuffer()。
+
+ Method 2: Create a sub-thread, and get the tag data by calling the readTagFromBuffer() method in the sub-thread. See readTagFromBuffer() for details.
+
+ 
+
+ 备注：开启循环识别标签后模块只能响应stopInventory()函数 。
+
+ Note: The module can only respond to the stopInventory() function after the loop identification tag is turned on.
+
+Specified by:
+startInventoryTag in interface IUHF
+Returns:
+true:成功(success)  false:失败(failure)
+
+startInventoryTag
+
+public boolean startInventoryTag(InventoryParameter inventoryParameter)
+
+Specified by:
+startInventoryTag in interface IUHF
+Overrides:
+startInventoryTag in class RFIDWithUHFBase
+
+readTagFromBuffer
+
+public UHFTAGInfo readTagFromBuffer()
+接收循环盘点的标签数据
+
+ Receive label data for cycle count
+
+ 创建一个子线程调用此方法获取标签数据，此方法非阻塞模式。此方法只负责从数据缓冲区获取标签数据，如果数据缓冲区没有标签数据，将返回NULL。
+
+ Create a child thread to call this method to get tag data, this method is non-blocking mode. This method is only responsible for getting the tag data from the data buffer. If the data buffer has no tag data, it will return NULL.
+
+ 
+
+ 备注：推荐使用回调函数的方式接收数据 setInventoryCallback(IUHFInventoryCallback inventoryCallback)
+
+  Note: It is recommended to use the callback function to receive data setInventoryCallback(IUHFInventoryCallback inventoryCallback)
+
+Specified by:
+readTagFromBuffer in interface IUHF
+Returns:
+返回标签数据，当前数据缓冲区没有标签数据则返回null。
+
+ returns the tag data, or null if there is no tag data in the current data buffer.
+
+ 实例代码(Example code):
+
+        
+     Thread thread=new Thread(new Runnable() {
+        
+           @Override
+        
+          public void run() {
+        
+            while (isInventory){
+        
+                  UHFTAGInfo taginfo=readTagFromBuffer();
+        
+                  if(taginfo==null){
+        
+                     Thread.sleep(10);
+        
+                   }
+        
+                  String epc= taginfo.getEPC();
+        
+                  String rssi= taginfo.getRssi();
+        
+              }
+        
+           }
+        
+       });
+        
+  
+        
+    .......
+        
+     stopInventory();
+        
+     isInventory=false;
+
+stopInventory
+
+public boolean stopInventory()
+停止循环盘点标签(Stop cycle count labels)
+
+Specified by:
+stopInventory in interface IUHF
+Returns:
+true:成功(success) false:失败(failure)
+
+generateLockCode
+
+public java.lang.String generateLockCode(java.util.ArrayList<java.lang.Integer> lockBank,
+                                         int lockMode)
+获取锁定码(Get lock code)
+
+ 示例代码:比如锁定EPC区和USER区  (Sample code: such as locking EPC area and USER area)
+                List lockBank=new ArrayList<>();
+                lockBank.add(IUHF.LockBank_EPC);
+                lockBank.add(IUHF.LockBank_USER);
+                int lockMode =IUHF.LockMode_LOCK;
+                String hexLockCode=generateLockCode(lockBank,lockMode);
+
+Specified by:
+generateLockCode in interface IUHF
+Overrides:
+generateLockCode in class RFIDWithUHFBase
+Parameters:
+lockBank - 要锁定的区域 (lockBank areas that need to lock ): 
+
+                             IUHF.LockBank_KILL
+
+                             IUHF.LockBank_ACCESS
+
+                             IUHF.LockBank_TID
+
+                             IUHF.LockBank_USER
+
+                             IUHF.LockBank_EPC
+
+lockMode - 锁定的模式(lockMode lock modes):
+
+                          IUHF.LockMode_LOCK
+
+                          IUHF.LockMode_OPEN
+
+        IUHF.LockMode_PLOCK
+
+        IUHF.LockMode_POPEN
+
+Returns:
+返回锁定码，null表示失败(return lock code, null means failure)
+
+lockMem
+
+public boolean lockMem(java.lang.String accessPwd,
+                       java.lang.String lockCode)
+锁标签(lock label)
+
+ 示例代码:比如锁定EPC区和USER区  (Sample code: such as locking EPC area and USER area)
+                List lockBank=new ArrayList<>();
+                lockBank.add(IUHF.LockBank_EPC);
+                lockBank.add(IUHF.LockBank_USER);
+                int lockMode =IUHF.LockMode_LOCK;
+                String hexLockCode=generateLockCode(lockBank,lockMode);
+            lockMem(accessPwd,hexLockCode);
+
+Specified by:
+lockMem in interface IUHF
+Parameters:
+accessPwd - ACCESS PASSWORD (4 bites)
+lockCode - 锁定码，可以通过generateLockCode(ArrayList lockBank,int lockMode)方法来获取
+
+                  lockCode lock code, which can be obtained by generateLockCode(ArrayList lockBank,int lockMode) method
+Returns:
+true:成功(success)  false:失败(failure)
+
+lockMem
+
+public boolean lockMem(java.lang.String accessPwd,
+                       int bank,
+                       int ptr,
+                       int cnt,
+                       java.lang.String filterData,
+                       java.lang.String lockCode)
+锁指定标签(Lock specified label)
+ 示例代码:比如锁定EPC区和USER区  (Sample code: such as locking EPC area and USER area)
+                List lockBank=new ArrayList<>();
+                lockBank.add(IUHF.LockBank_EPC);
+                lockBank.add(IUHF.LockBank_USER);
+                int lockMode =IUHF.LockMode_LOCK;
+                String hexLockCode=generateLockCode(lockBank,lockMode);
+            lockMem(accessPwd,bank,ptr,cnt,filterData,hexLockCode);
+
+Specified by:
+lockMem in interface IUHF
+Parameters:
+accessPwd - ACCESS PASSWORD (4 bites)
+bank - 标签的存储区(Storage areas for) IUHF.Bank_RESERVED、IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+ptr - 过滤起始地址,单位:bit (Filter start address, unit: bit)
+cnt - 过滤数据长度,单位:bit,当过滤的数据长度为0时，表示无过滤。(Filter data length (unit: bit), when the filtered data length is 0, it means no filtering.)
+filterData - 过滤数据(filterData filter data)
+lockCode - 锁定码(lockCode lock code)
+Returns:
+true:成功(success)  false:失败(failure)
+
+inventorySingleTag
+
+public UHFTAGInfo inventorySingleTag()
+单次盘点标签(Single Inventory Label)
+
+Specified by:
+inventorySingleTag in interface IUHF
+Returns:
+返回标签数据，null表示盘点失败(returns the label data, null means the inventory failed)
+
+readData
+
+public java.lang.String readData(java.lang.String accessPwd,
+                                 int bank,
+                                 int ptr,
+                                 int cnt)
+读取标签的数据(Read tag data)
+
+Specified by:
+readData in interface IUHF
+Parameters:
+accessPwd - 访问密码，4个字节 (accessPwd access password, 4 bytes)
+bank - 读取的存储区(Banks read by) IUHF.Bank_RESERVED、IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+ptr - 读取的起始地址,单位:字 (The starting address of reading ,unit: word)
+cnt - 读取的数据长度,单位:字 (read data length ,unit: word)
+Returns:
+true:成功(success)  false:失败(failure)
+
+readData
+
+public java.lang.String readData(java.lang.String accessPwd,
+                                 int filterBank,
+                                 int filterPtr,
+                                 int filterCnt,
+                                 java.lang.String filterData,
+                                 int bank,
+                                 int ptr,
+                                 int cnt)
+读取指定标签的数据(Read the data of the specified tag)
+
+Specified by:
+readData in interface IUHF
+Parameters:
+accessPwd - 访问密码，4个字节 (accessPwd access password, 4 bytes)
+filterBank - 过滤的存储区(Filtered banks) IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+filterPtr - 过滤的起始地址(the starting address of the filter)
+filterCnt - 过滤数据长度,单位:bit,当过滤的数据长度为0时，表示无过滤。(filterCnt Filter data length ,unit: bit, when the filtered data length is 0, it means no filtering)
+filterData - 过滤数据(filter data)
+bank - 读取的存储区(Banks read by) IUHF.Bank_RESERVED、IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+ptr - 读取的起始地址,单位:字 (The starting address of reading ,unit: word)
+cnt - 读取的数据长度,单位:字 (read data length ,unit: word)
+Returns:
+true:成功(success)  false:失败(failure)
+
+writeData
+
+public boolean writeData(java.lang.String accessPwd,
+                         int bank,
+                         int ptr,
+                         int cnt,
+                         java.lang.String data)
+将数据写入标签（write data to label）
+
+Specified by:
+writeData in interface IUHF
+Parameters:
+accessPwd - 访问密码，4个字节（accessPwd access password, 4 bytes）
+bank - 写入的存储区(storage area)IUHF.Bank_RESERVED、IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+ptr - 写入的起始地址,单位:字 (start address,unit: word)
+cnt - 写入的数据长度,单位:字 (data length(Word is unit, cannot be 0))
+data - 写入的数据,十六进制格式 (data format should be hexvalue)
+Returns:
+true:成功(success)  false:失败(failure)
+
+writeData
+
+public boolean writeData(java.lang.String accessPwd,
+                         int filterBank,
+                         int filterPtr,
+                         int filterCnt,
+                         java.lang.String filterData,
+                         int bank,
+                         int ptr,
+                         int cnt,
+                         java.lang.String writeData)
+将数据写入指定标签（write data to label）
+
+Specified by:
+writeData in interface IUHF
+Parameters:
+accessPwd - 访问密码，4个字节 （accessPwd access password, 4 bytes）
+filterBank - 过滤的存储区(Filtered banks) IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+filterPtr - 过滤的起始地址(the starting address of the filter)
+filterCnt - 过滤数据长度,单位:bit,当过滤的数据长度为0时，表示无过滤。(filterCnt Filter data length ,unit: bit, when the filtered data length is 0, it means no filtering)
+filterData - 过滤数据(filter data)
+bank - 写入的存储区(storage area)  IUHF.Bank_RESERVED、IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+ptr - 写入的起始地址,单位:字 (start address,unit: word)
+cnt - 写入的数据长度,单位:字 (data length(Word is unit, cannot be 0))
+writeData - 写入的数据,十六进制格式 (data format should be hexvalue)
+Returns:
+true:成功(success)  false:失败(failure)
+
+blockWriteData
+
+public boolean blockWriteData(java.lang.String accessPwd,
+                              int filterBank,
+                              int filterPtr,
+                              int filterCnt,
+                              java.lang.String filterData,
+                              int bank,
+                              int ptr,
+                              int cnt,
+                              java.lang.String writeData)
+将数据写入指定标签(支持大数据标签写入)、当需要写入的标签数据比较大可以使用此函数写入(Write data into tag(support big-sized data writing), user could use this function when big-sized data need to be written.)
+
+Specified by:
+blockWriteData in interface IUHF
+Parameters:
+accessPwd - 访问密码，4个字节 （accessPwd access password, 4 bytes）
+filterBank - 过滤的存储区(Filtered banks) IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+filterPtr - 过滤的起始地址(the starting address of the filter)
+filterCnt - 过滤数据长度,单位:bit,当过滤的数据长度为0时，表示无过滤。(filterCnt Filter data length ,unit: bit, when the filtered data length is 0, it means no filtering)
+filterData - 过滤数据(filter data)
+bank - 写入的存储区(storage area)  IUHF.Bank_RESERVED、IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+ptr - 写入的起始地址,单位:字 (start address,unit: word)
+cnt - 写入的数据长度,单位:字 (data length(Word is unit, cannot be 0))
+writeData - 写入的数据,十六进制格式 (data format should be hexvalue)
+Returns:
+true:成功(success)  false:失败(failure)
+
+blockWriteData
+
+public boolean blockWriteData(java.lang.String accessPwd,
+                              int bank,
+                              int ptr,
+                              int cnt,
+                              java.lang.String writeData)
+将数据写入标签(支持大数据标签写入)、当需要写入的标签数据比较大可以使用此函数写入(Write data into tag(support big-sized data writing), user could use this function when big-sized data need to be written.)
+
+Specified by:
+blockWriteData in interface IUHF
+Parameters:
+accessPwd - 访问密码，4个字节 （accessPwd access password, 4 bytes）
+bank - 写入的存储区(storage area) IUHF.Bank_RESERVED、IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+ptr - 写入的起始地址,单位:字 (start address,unit: word)
+cnt - 写入的数据长度,单位:字 (data length(Word is unit, cannot be 0))
+writeData - 写入的数据,十六进制格式 (data format should be hexvalue)
+Returns:
+true:成功(success)  false:失败(failure)
+
+eraseData
+
+public boolean eraseData(java.lang.String accessPwd,
+                         int filterBank,
+                         int filterPtr,
+                         int filterCnt,
+                         java.lang.String filterData,
+                         int bank,
+                         int ptr,
+                         int cnt)
+擦除指定标签的数据，被擦除的数据块其内容将被设置成0.(Clean specific tag data, data block after cleaned will be set to 0. )
+
+Specified by:
+eraseData in interface IUHF
+Parameters:
+accessPwd - 访问密码，4个字节 （accessPwd access password, 4 bytes）
+filterBank - 过滤的存储区(Filtered banks) IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+filterPtr - 过滤的起始地址(the starting address of the filter)
+filterCnt - 过滤数据长度,单位:bit,当过滤的数据长度为0时，表示无过滤。(filterCnt Filter data length ,unit: bit, when the filtered data length is 0, it means no filtering)
+filterData - 过滤数据(filter data)
+bank - 擦除的数据区域(Cleaned data block):IUHF.Bank_RESERVED、  IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+ptr - 擦除的起始地址,单位:字  (erase start address,Unit: word)
+cnt - 擦除的数据长度,单位:字 (erased data length,Unit: word)
+Returns:
+true:成功(success)  false:失败(failure)
+
+eraseData
+
+public boolean eraseData(java.lang.String accessPwd,
+                         int bank,
+                         int ptr,
+                         int cnt)
+擦除数据，被擦除的数据块其内容将被设置成0. (Data block that has been cleaned will be setup to 0.)
+
+Specified by:
+eraseData in interface IUHF
+Parameters:
+accessPwd - ACCESS PASSWORD (4 bites)
+bank - 擦除的数据区域(Cleaned data block) IUHF.Bank_RESERVED、  IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+ptr - 擦除的起始地址,单位:字  (erase start address,Unit: word)
+cnt - 擦除的数据长度,单位:字 (erased data length,Unit: word)
+Returns:
+true:成功(success)  false:失败(failure)
+
+setFilter
+
+public boolean setFilter(int bank,
+                         int ptr,
+                         int cnt,
+                         java.lang.String data)
+设置循环盘点符合过滤条件的标签，不符合过滤条件的标签将不会上传。注意：必须在循环盘点标签之前设置
+
+  Set up a round-robin inventory of tags that meet the filter conditions, and tags that do not meet the filter conditions will not be uploaded. Note: Must be set before cycle count label
+
+Specified by:
+setFilter in interface IUHF
+Parameters:
+bank - 过滤的存储区(filtered banks)  IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+ptr - 过滤的起始地址,单位：bit (the starting address of the filter，Unit: bit)
+cnt - 过滤数据长度，单位:bit,当过滤的数据长度为0时，表示无过滤 (Filter data length (unit: bit), when the filtered data length is 0, it means no filtering)
+data - 过滤的数据，十六进制数据 (filtered data, hexadecimal data)
+Returns:
+true:成功(success)  false:失败(failure)
+
+killTag
+
+public boolean killTag(java.lang.String killPwd)
+销毁指定标签 ,默认密码(0x00 0x00 0x00 0x00)不能执行销毁
+
+ Destroy the label, the default password (0x00 0x00 0x00 0x00) cannot be destroyed
+
+Specified by:
+killTag in interface IUHF
+Parameters:
+killPwd - 销毁密码(destroy password)
+Returns:
+true:成功(success)  false:失败(failure)
+
+killTag
+
+public boolean killTag(java.lang.String killPwd,
+                       int filterBank,
+                       int filterPtr,
+                       int filterCnt,
+                       java.lang.String filterData)
+销毁指定标签 ,默认密码(0x00 0x00 0x00 0x00)不能执行销毁
+
+ Destroy the specified label, the default password (0x00 0x00 0x00 0x00) cannot be destroyed
+
+Specified by:
+killTag in interface IUHF
+Parameters:
+killPwd - 销毁密码(destroy password)
+filterBank - 过滤的存储区(Filtered banks) IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+filterPtr - 过滤的起始地址(the starting address of the filter)
+filterCnt - 过滤数据长度,单位:bit,当过滤的数据长度为0时，表示无过滤。(Filter data length ,unit: bit, when the filtered data length is 0, it means no filtering)
+filterData - 过滤数据(filter data)
+Returns:
+true:成功(success)  false:失败(failure)
+
+setProtocol
+
+public boolean setProtocol(int protocol)
+设置协议(Set protocol)
+
+Specified by:
+setProtocol in interface IUHF
+Parameters:
+protocol - 0x00： ISO18000-6C   
+
+            0x01 ：GB/T 29768 
+
+            0x02 ： GJB 7377.1  
+
+Returns:
+true:成功(success) false:失败(failure)
+
+getProtocol
+
+public int getProtocol()
+获取协议(Get the protocol)
+
+Specified by:
+getProtocol in interface IUHF
+Returns:
+0x00:ISO18000-6C, 0x01:GB/T 29768, 0x02:GJB 7377.1; 返回-1表示获取失败
+
+ 0x00:ISO18000-6C, 0x01:GB/T 29768, 0x02:GJB 7377.1; return -1 means the acquisition failed
+
+setFreHop
+
+public boolean setFreHop(float fre)
+设置模块频点(Setup frequency Hop)
+
+Specified by:
+setFreHop in interface IUHF
+Parameters:
+fre - 要设置的频点((frequency need to be set))
+Returns:
+true:成功(success) false:失败(failure)
+
+setRFLink
+
+public boolean setRFLink(int mode)
+设置链路参数
+
+ Setup RFlink
+
+Specified by:
+setRFLink in interface IUHF
+Parameters:
+mode - 0-PR ASK/Miller8/160KHz
+
+         1-PR ASK/Miller4/250KHz
+
+         2-PR ASK/Miller4/320KHz
+
+         3-PR ASK/Miller4/640KHz
+
+         4-PR ASK/Miller2/320KHz
+
+         5-PR ASK/Miller2/640KHz
+
+         10-Gen2X/Miller8/160KHz
+
+         11-Gen2X/Miller4/250KHz
+
+         12-Gen2X/Miller4/320KHz
+
+         13-Gen2x/Miller4/640KHz
+
+         14-Gen2X/Miller2/320KHz
+
+         15-Gen2X/Miller2/640KHz
+
+         20-Autoset/Miller8/160KHz
+
+         21-Autoset/Miller4/250KHz
+
+         22-Autoset/Miller4/320KHz
+
+         23-Autoset/Miller4/640KHz
+
+         24-Autoset/Miller2/320KHz
+
+         25-Autoget/Miller2/640KHz
+
+Returns:
+true:成功(success) false:失败(failure)
+
+getRFLink
+
+public int getRFLink()
+获取链路参数
+
+ acquire link parameter
+
+Specified by:
+getRFLink in interface IUHF
+Returns:
+-1:失败(failure) 
+
+         0-PR ASK/Miller8/160KHz
+
+         1-PR ASK/Miller4/250KHz
+
+         2-PR ASK/Miller4/320KHz
+
+         3-PR ASK/Miller4/640KHz
+
+         4-PR ASK/Miller2/320KHz
+
+         5-PR ASK/Miller2/640KHz
+
+         10-Gen2X/Miller8/160KHz
+
+         11-Gen2X/Miller4/250KHz
+
+         12-Gen2X/Miller4/320KHz
+
+         13-Gen2x/Miller4/640KHz
+
+         14-Gen2X/Miller2/320KHz
+
+         15-Gen2X/Miller2/640KHz
+
+         20-Autoset/Miller8/160KHz
+
+         21-Autoset/Miller4/250KHz
+
+         22-Autoset/Miller4/320KHz
+
+         23-Autoset/Miller4/640KHz
+
+         24-Autoset/Miller2/320KHz
+
+         25-Autoget/Miller2/640KHz
+
+setFastID
+
+public boolean setFastID(boolean enalbe)
+开关FastID功能 (Switch FastID function)
+
+Specified by:
+setFastID in interface IUHF
+Parameters:
+enalbe - true：开(on)，false：关(off)
+Returns:
+true:成功(success) false:失败(failure)
+
+setTagFocus
+
+public boolean setTagFocus(boolean enalbe)
+开关TagFocus功能(Switch TagFocus function)
+
+Specified by:
+setTagFocus in interface IUHF
+Parameters:
+enalbe - true：开(on)，false：关(off)
+Returns:
+true:成功(success) false:失败(failure)
+
+setEPCMode
+
+public boolean setEPCMode()
+设置盘点模式为EPC，只返回标签的EPC数据 (Set the inventory mode to EPC, and only return the EPC data of the label)
+
+Specified by:
+setEPCMode in interface IUHF
+Returns:
+true:成功(success) false:失败(failure)
+
+setEPCAndTIDMode
+
+public boolean setEPCAndTIDMode()
+设置盘点模式为EPC+TID，返回标签的EPC+TID数据 (Set the inventory mode to EPC+TID, and return the EPC+TID data of the label)
+
+Specified by:
+setEPCAndTIDMode in interface IUHF
+Returns:
+true:成功(success) false:失败(failure)
+
+setEPCAndTIDUserMode
+
+public boolean setEPCAndTIDUserMode(int user_prt,
+                                    int user_len)
+设置盘点模式为EPC+TID+USER，返回标签的EPC+TID+USER数据 (Set the inventory mode to EPC+TID+USER, and return the EPC+TID+USER data of the label)
+
+Specified by:
+setEPCAndTIDUserMode in interface IUHF
+Parameters:
+user_prt - USER区起始地址 (USER area start address)
+user_len - USER区长度(USER area length)
+Returns:
+true:成功(success) false:失败(failure)
+
+getTemperature
+
+public int getTemperature()
+获取UHF模块温度 (Get UHF module temperature)
+
+Specified by:
+getTemperature in interface IUHF
+Returns:
+返回模块温度。 -1表示返回失败。(Returns the module temperature. -1 means return failure.)
+
+uhfBlockPermalock
+
+public boolean uhfBlockPermalock(java.lang.String accessPwd,
+                                 int FilterBank,
+                                 int FilterStartaddr,
+                                 int FilterLen,
+                                 java.lang.String FilterData,
+                                 int ReadLock,
+                                 int uBank,
+                                 int uPtr,
+                                 int uRange,
+                                 byte[] uMaskbuf)
+数据块操作(Data block operation)
+
+Specified by:
+uhfBlockPermalock in interface IUHF
+Parameters:
+accessPwd - 访问密码，4个字节十六进制数据 （accessPwd access password, 4 bytes of hexadecimal data）
+FilterBank - 过滤的存储区(Filtered banks) IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+
+FilterStartaddr - 过滤的起始地址(the starting address of the filter)
+FilterLen - 过滤数据长度,单位:bit,当过滤的数据长度为0时，表示无过滤。(Filter data length ,unit: bit, when the filtered data length is 0, it means no filtering)
+FilterData - 过滤数据(filter data)
+ReadLock - 0表示读设置  1表示锁设置（0 means read setting 1 means lock setting）
+uBank - 存储区域 (storage area)IUHF.Bank_RESERVED、IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+uPtr - 存储区域起始地址 ，默认为0，其中 1个块单元为16个块 (start address of storage area, the default is 0, of which 1 block unit is 16 blocks)
+uRange - 存储区域结束范围，默认为1，其中 1个块单元为16个块 (storage area end range, the default is 1, of which 1 block unit is 16 blocks)
+uMaskbuf - 设置锁MSAK， 高位在前，每个bit 代表为1个块，默认为2字节 ( set the lock MSAK, high order first, each bit represents 1 block, the default is 2 bytes)
+Returns:
+true:成功(success) false:失败(failure)
+
+setGen2
+
+public boolean setGen2(Gen2Entity entity)
+设置GEN2参数值 (Set GEN2 parameter value)
+
+Specified by:
+setGen2 in interface IUHF
+Parameters:
+entity - GEN2参数实体对象(GEN2 parameter entity object)
+Returns:
+true:成功(success) false:失败(failure)
+
+getGen2
+
+public Gen2Entity getGen2()
+获取GEN2参数值(Get GEN2 parameter value)
+
+Specified by:
+getGen2 in interface IUHF
+Returns:
+GEN2参数值实体对象 (GEN2 parameter value entity object)
+
+setPwm
+
+public boolean setPwm(int WorkTime,
+                      int WaitTime)
+设置占空比(Set the duty cycle)
+
+Specified by:
+setPwm in interface IUHF
+Parameters:
+WorkTime - 工作时间(working time)（0~255 ms）
+WaitTime - 空闲时间(idle time)（0~255 ms）
+Returns:
+true:成功(success) false:失败(failure)
+
+getPwm
+
+public int[] getPwm()
+获取占空比 (Get the duty cycle)
+
+Specified by:
+getPwm in interface IUHF
+Returns:
+[0]工作时间，[1]等待时间;单位为毫秒。失败返回null 
+
+ [0] Working time, [1] Waiting time; the unit is milliseconds. return null on failure
+
+uhfJump2Boot
+
+public boolean uhfJump2Boot()
+uhf固件进入boot模式准备升级,调用此函数后需要延时2秒再调用 uhfStartUpdate() (uhf firmware enters boot mode to prepare for upgrade)
+
+Specified by:
+uhfJump2Boot in interface IUHF
+Returns:
+true:成功(success) false:失败(failure)
+
+uhfStartUpdate
+
+public boolean uhfStartUpdate()
+开始升级UHF固件,调用此函数后需要延时2秒再调用 uhfUpdating(byte[] buff)  (Start to upgrade UHF firmware)
+
+Specified by:
+uhfStartUpdate in interface IUHF
+Returns:
+true:成功(success) false:失败(failure)
+
+uhfUpdating
+
+public boolean uhfUpdating(byte[] buff)
+发送uhf升级包 (Send uhf upgrade package)
+
+Specified by:
+uhfUpdating in interface IUHF
+Parameters:
+buff - uhf固件数据包，每次固定发送64字节数据。(buff uhf firmware data packet, 64 bytes of data are sent each time.)
+Returns:
+true:成功(success) false:失败(failure)
+
+uhfStopUpdate
+
+public boolean uhfStopUpdate()
+停止升级UHF固件(Stop upgrading UHF firmware)
+
+Specified by:
+uhfStopUpdate in interface IUHF
+Returns:
+true:成功(success) false:失败(failure)
+
+getCW
+
+public int getCW()
+获取蜂鸣器的状态(Get the status of the buzzer)
+
+Specified by:
+getCW in interface IUHF
+Returns:
+[0]表示蜂鸣器状态,0:关，1:开。 返回null表示获取失败
+
+ [0] indicates the buzzer status, 0: off, 1: on. Returning null indicates that the acquisition failed
+
+setCW
+
+public boolean setCW(int flag)
+设置连续波(continuous waves)
+
+Specified by:
+setCW in interface IUHF
+Parameters:
+flag - 1:开(on)， 0:关(off)
+Returns:
+true:成功(success) false:失败(failure)
+
+getEPCAndTIDUserMode
+
+public InventoryModeEntity getEPCAndTIDUserMode()
+获取当前设置的盘点模式 (Get the currently set inventory mode)
+
+Specified by:
+getEPCAndTIDUserMode in interface IUHF
+Returns:
+返回盘点模式的对象(the object that returns the inventory mode)
+
+setBeep
+
+public boolean setBeep(int mode)
+开关蜂鸣器，打开蜂鸣器后盘点到标签会响应蜂鸣器。(Turn the buzzer on and off, and the label will respond to the buzzer after turning on the buzzer.)
+
+Specified by:
+setBeep in interface IUHF
+Parameters:
+mode - 0:关闭(off)  1:打开(on)
+Returns:
+true:成功(success) false:失败(failure)
+
+getBeep
+
+public char[] getBeep()
+获取蜂鸣器的状态(Get the status of the buzzer)
+
+Specified by:
+getBeep in interface IUHF
+Returns:
+[0]表示蜂鸣器状态,0:关，1:开。 返回null表示获取失败
+
+ [0] indicates the buzzer status, 0: off, 1: on. Returning null indicates that the acquisition failed
+
+getDeviceID
+
+public java.lang.String getDeviceID()
+
+uhfJump2BootToSTM32
+
+public boolean uhfJump2BootToSTM32()
+uhf主板进入boot模式准备升级,调用此函数后需要延时2秒再调用 uhfStartUpdate() (uhf firmware enters boot mode to prepare for upgrade)
+
+Specified by:
+uhfJump2BootToSTM32 in interface IUHF
+Returns:
+true:成功(success) false:失败(failure)
+
+setInventoryCallback
+
+public void setInventoryCallback(IUHFInventoryCallback inventoryCallback)
+设置盘点回调接口，接收循环盘点到的标签数据
+
+ Set the inventory callback interface to receive the label data from the cyclic inventory
+
+ 备注：需要在开始循环盘点startInventoryTag() 之前调用此方法。
+
+ Note: This method needs to be called before starting the loop inventory startInventoryTag() .
+
+Specified by:
+setInventoryCallback in interface IUHF
+Overrides:
+setInventoryCallback in class RFIDWithUHFBase
+Parameters:
+inventoryCallback - 盘点回调接口(inventory callback interface)
+
+getConnectStatus
+
+public ConnectionState getConnectStatus()
+获取连接状态(get connection status)
+
+Specified by:
+getConnectStatus in interface IUHF
+Returns:
+connection status
+
+setFastInventoryMode
+
+public boolean setFastInventoryMode(FastInventoryEntity entity)
+Description copied from interface: IUHF
+setFastInventory
+
+Specified by:
+setFastInventoryMode in interface IUHF
+Parameters:
+entity - 0x00,close； 0x01：CrID16， 0x02：CrStoredCRC，0x03：CrRN16，0x04：CrID32
+
+getFastInventoryMode
+
+public FastInventoryEntity getFastInventoryMode()
+
+Specified by:
+getFastInventoryMode in interface IUHF
+Returns:
+0x00,close； 0x01：CrID16， 0x02：CrStoredCRC，0x03：CrRN16，0x04：CrID32
+
+setKeyEventCallback
+
+public void setKeyEventCallback(KeyEventCallback keyEventCallback)
+
+startScanBarcode
+
+public byte[] startScanBarcode()
+startScanBarcode
+
+Returns:
+
+setPower
+
+public boolean setPower(AntennaNameEnum ant,
+                        int power)
+设置天线功率 (Set the antenna power)
+
+Specified by:
+setPower in interface IMultipleAntenna
+Parameters:
+ant - 天线号(antenna)
+power - 功率(power)
+Returns:
+true:成功(success) false:失败(failure)
+
+getPower
+
+public int getPower(AntennaNameEnum ant)
+读取单个天线功率(Read the power of a single antenna)
+
+Specified by:
+getPower in interface IMultipleAntenna
+Returns:
+返回功率，返回-1为失败 (return power, return -1 for failure)
+
+getPowerAll
+
+public java.util.List<AntennaPowerEntity> getPowerAll()
+获取所有天线功率(Read the power of all antenna)
+
+Specified by:
+getPowerAll in interface IMultipleAntenna
+Returns:
+返回功率，返回null为失败 (return power, return null for failure)
+
+setAntenna
+
+public boolean setAntenna(java.util.List<AntennaState> antStatus)
+设置天线启用状态(Set the antenna enable state)
+
+Specified by:
+setAntenna in interface IMultipleAntenna
+Parameters:
+antStatus - 天线参数(Antenna parameter)
+Returns:
+true:成功(success) false:失败(failure)
+
+getAntenna
+
+public java.util.List<AntennaState> getAntenna()
+获取天线启用状态(Get the antenna enable status)
+
+Specified by:
+getAntenna in interface IMultipleAntenna
+Returns:
+返回天线启用状态，null表示获取失败(returns the antenna enable status, null means the acquisition failed)
+
+marginRead
+
+public boolean marginRead(java.lang.String accessPwd,
+                          FilterEntity filterEntity,
+                          int bank,
+                          int ptr,
+                          int cnt,
+                          java.lang.String marginReadData)
+MarginRead
+
+Specified by:
+marginRead in interface IUHF
+Overrides:
+marginRead in class RFIDWithUHFBase
+Parameters:
+accessPwd - ACCESS PASSWORD (4 bites)
+filterEntity - Filter tag
+bank - 标签的存储区(Storage area):IUHF.Bank_RESERVED、IUHF.Bank_EPC、IUHF.Bank_TID、IUHF.Bank_USER
+ptr - 起始地址的偏移量(start address(unit: word))
+cnt - 数据的长度（Word为单位，不能为0）(Data length(Word is unit, cannot be 0))
+marginReadData - 十六进制数据 (Data format should be hexvalue)
+Returns:
+true:成功(success) false:失败(fail)
+
+setProtectedModeAndShortRangeMode
+
+public boolean setProtectedModeAndShortRangeMode(java.lang.String accessPwd,
+                                                 FilterEntity filterEntity,
+                                                 boolean isEnalbeProtectedMode,
+                                                 boolean isEnableShortRangeMode)
+Set Protected Mode And Short Range Mode
+
+Specified by:
+setProtectedModeAndShortRangeMode in interface IUHF
+Overrides:
+setProtectedModeAndShortRangeMode in class RFIDWithUHFBase
+Parameters:
+accessPwd - ACCESS PASSWORD (4 bites)
+filterEntity - Filter tag
+isEnalbeProtectedMode - true:Enable Protected Mode  false：disable Protected Mode
+isEnableShortRangeMode - true:Enable Short Range Mode  false：disable  Short Range Mode
+Returns:
+true:成功(success) false:失败(failure)
+
+Skip navigation links
+
+Overview
+Package
+Class
+Tree
+Deprecated
+Index
+Help
+
+Prev Class
+Next Class
+
+Frames
+No Frames
+
+All Classes
+
+Summary: 
+Nested | 
+Field | 
+Constr | 
+Method
+
+Detail: 
+Field | 
+Constr | 
+Method
+

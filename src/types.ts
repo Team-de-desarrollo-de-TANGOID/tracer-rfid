@@ -90,6 +90,10 @@ export interface User {
   rolNombre: string;
   rolEsSistema: boolean;
   permisos: string[];
+  /** Inicio de la sesión actual. */
+  ultimoLogin?: string | null;
+  /** Inicio de sesión anterior (si hubo). */
+  loginAnterior?: string | null;
 }
 
 export interface UsuarioListItem {
@@ -100,6 +104,8 @@ export interface UsuarioListItem {
   rolId: number;
   rolNombre: string;
   createdAt: string;
+  /** Usuario Administrador del sistema: no se desactiva ni elimina. */
+  esSistema?: boolean;
 }
 
 export interface Rol {
@@ -139,7 +145,8 @@ export type SidebarTab =
   | 'dashboard'
   | 'activos'
   | 'sincronizar'
-  | 'configuracion';
+  | 'configuracion'
+  | 'ayuda';
 
 export type ActivosSection = 'inventario' | 'agregar';
 
@@ -308,4 +315,6 @@ export const PERMISSION_TAB_MAP: Record<SidebarTab, string[]> = {
     P.usuariosGestionar,
     P.rolesGestionar,
   ],
+  /** Acceso libre para cualquier usuario autenticado. */
+  ayuda: [],
 };

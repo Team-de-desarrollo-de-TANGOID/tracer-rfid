@@ -82,7 +82,7 @@ export const api = {
     propiedadesExtra?: Record<string, string>;
   }) => request<Activo>('/api/activos', { method: 'POST', body: JSON.stringify(body) }),
 
-  createActivosLote: (body: {
+  createActivosLote: async (body: {
     epcs: string[];
     skuId: number;
     estadoId: number;
@@ -90,11 +90,50 @@ export const api = {
     descripcion?: string;
     codigoInterno?: string;
     propiedadesExtra?: Record<string, string>;
-  }) =>
-    request<{ total: number; creados: string[]; errores: { epc: string; error: string }[]; mensaje: string }>(
-      '/api/activos/lote',
-      { method: 'POST', body: JSON.stringify(body) }
-    ),
+  }) => {
+    const token = getStoredToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`${BASE}/api/activos/lote`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      mensaje?: string;
+      total?: number;
+      creados?: string[];
+      errores?: { epc: string; error: string }[];
+    };
+    if (!res.ok) {
+      const err = new Error(data.error ?? data.mensaje ?? res.statusText) as Error & {
+        status: number;
+        errores?: { epc: string; error: string }[];
+      };
+      err.status = res.status;
+      err.errores = data.errores;
+      throw err;
+    }
+    return data as {
+      total: number;
+      creados: string[];
+      errores: { epc: string; error: string }[];
+      mensaje: string;
+    };
+  },
+
+  getHistorialCargas: () =>
+    request<
+      {
+        id: number;
+        fecha: string;
+        usuarioId: number | null;
+        usuarioNombre: string;
+        cantidad: number;
+        errores: number;
+      }[]
+    >('/api/activos/historial-cargas'),
 
   updateActivo: (
     id: number,
@@ -259,13 +298,87 @@ export const api = {
   ) => request<Rol>(`/api/roles/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteRol: (id: number) => request<{ ok: boolean }>(`/api/roles/${id}`, { method: 'DELETE' }),
 
-  mockScanOne: () =>
-    request<{ tid: string; demo: boolean }>('/api/mock/scan-one', { method: 'POST' }),
-  mockScanBatch: (count?: number) =>
-    request<{ epcs: string[]; total: number; demo: boolean }>('/api/mock/scan-batch', {
+  r3Status: () =>
+    request<{
+      ok: boolean;
+      bridge?: boolean;
+      connected: boolean;
+      inventory: boolean;
+      state: string;
+      lastError?: string | null;
+      power?: { ant1: number; ant2: number; ant3: number; ant4: number };
+      tagCount?: number;
+      cursor?: number;
+      javaRequired?: boolean;
+      error?: string;
+    }>('/api/r3/status'),
+  r3Connect: () =>
+    request<{
+      ok: boolean;
+      connected: boolean;
+      inventory: boolean;
+      state: string;
+      power?: { ant1: number; ant2: number; ant3: number; ant4: number };
+      lastError?: string | null;
+    }>('/api/r3/connect', { method: 'POST' }),
+  r3Disconnect: () =>
+    request<{ ok: boolean; connected: boolean; inventory: boolean; state: string }>(
+      '/api/r3/disconnect',
+      { method: 'POST' }
+    ),
+  r3StartInventory: () =>
+    request<{ ok: boolean; connected: boolean; inventory: boolean; state: string }>(
+      '/api/r3/inventory/start',
+      { method: 'POST' }
+    ),
+  r3StopInventory: () =>
+    request<{ ok: boolean; connected: boolean; inventory: boolean; state: string }>(
+      '/api/r3/inventory/stop',
+      { method: 'POST' }
+    ),
+  r3Tags: (since = 0) =>
+    request<{
+      ok: boolean;
+      tags: {
+        tid?: string;
+        epc: string;
+        seq: number;
+        ts: number;
+        count: number;
+        rssi?: string | number | null;
+      }[];
+      cursor: number;
+    }>(`/api/r3/tags?since=${since}`),
+  r3ClearTags: () => request<{ ok: boolean }>('/api/r3/tags/clear', { method: 'POST' }),
+  r3ForgetTags: (tids: string | string[]) =>
+    request<{ ok: boolean; forgotten?: number }>('/api/r3/tags/forget', {
       method: 'POST',
-      body: JSON.stringify({ count }),
+      body: JSON.stringify(
+        Array.isArray(tids) ? { tids } : { tid: tids }
+      ),
     }),
+  r3GetPower: () =>
+    request<{
+      ok: boolean;
+      power: { ant1: number; ant2: number; ant3: number; ant4: number };
+      min: number;
+      max: number;
+      connected: boolean;
+    }>('/api/r3/power'),
+  r3SetPower: (body: {
+    power?: number;
+    ant1?: number;
+    ant2?: number;
+    ant3?: number;
+    ant4?: number;
+  }) =>
+    request<{
+      ok: boolean;
+      power: { ant1: number; ant2: number; ant3: number; ant4: number };
+      connected: boolean;
+      inventory?: boolean;
+      lastError?: string | null;
+    }>('/api/r3/power', { method: 'POST', body: JSON.stringify(body) }),
 
   getDashboard: (opts: { period?: DashboardPeriod; from?: string; to?: string } = {}) => {
     const qs = new URLSearchParams();
@@ -477,11 +590,13 @@ export const api = {
     gpoPin?: number;
     appPort?: number;
     appToken?: string;
+    portalWebhookUrl?: string;
   }) =>
     request<{
       ok: boolean;
       config: Record<string, string | number>;
       credentialsPush?: { ok: boolean; error?: string };
+      portalWebhookUrl?: string;
     }>('/api/sync/config', {
       method: 'PUT',
       body: JSON.stringify(body),
@@ -525,9 +640,12 @@ export const api = {
     request<FxMonitorSnapshot>(`/api/sync/monitor/snapshot?offset=${offset}`),
   monitorConnect: (body: {
     sshUser?: string;
-    sshPassword: string;
+    sshPassword?: string;
     adminUser?: string;
     adminPassword?: string;
+    storeCredentials?: boolean;
+    ip?: string;
+    appPort?: number;
   }) =>
     request<{
       ok: boolean;
@@ -537,8 +655,17 @@ export const api = {
       appOk?: boolean;
       reachable?: boolean;
       appVersion?: string;
+      storedCredentials?: boolean;
       deploy?: { skipped?: boolean; message?: string };
     }>('/api/sync/monitor/connect', { method: 'POST', body: JSON.stringify(body) }),
+  monitorSession: () =>
+    request<{
+      active: boolean;
+      ip: string | null;
+      sshUser: string;
+      hasStoredSshPassword: boolean;
+      hasStoredAdminPassword: boolean;
+    }>('/api/sync/monitor/session'),
   monitorDisconnect: () =>
     request<{ ok: boolean }>('/api/sync/monitor/disconnect', { method: 'POST' }),
   subscribeSyncMonitor: (opts: {

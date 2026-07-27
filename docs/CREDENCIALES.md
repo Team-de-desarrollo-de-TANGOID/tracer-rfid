@@ -8,12 +8,14 @@
 
 Acceso al panel web de gestión de inventario, dashboard y configuración.
 
-| Campo | Valor |
-|-------|-------|
-| URL (desarrollo) | `http://localhost:5173` |
+
+| Campo                  | Valor                   |
+| ---------------------- | ----------------------- |
+| URL (desarrollo)       | `http://localhost:5173` |
 | URL (producción local) | `http://localhost:3847` |
-| Usuario | `admin` |
-| Contraseña | `Admin3915` |
+| Usuario                | `Administrador`         |
+| Contraseña             | `administrador`         |
+
 
 La contraseña por defecto se define en `server/constants/permissions.js` (`ADMIN_DEFAULT_PASSWORD`). Puede cambiarse desde **Configuración → Usuarios y roles** (si tiene permisos).
 
@@ -23,11 +25,13 @@ La contraseña por defecto se define en `server/constants/permissions.js` (`ADMI
 
 Acceso a la interfaz web del lector: Applications, IoT Connector, GPIO, firmware, etc.
 
-| Campo | Valor |
-|-------|-------|
-| URL | `https://169.254.240.149` (o la IP configurada del lector) |
-| Usuario | `admin` |
-| Contraseña | `Admin1234$` |
+
+| Campo      | Valor                                                      |
+| ---------- | ---------------------------------------------------------- |
+| URL        | `https://169.254.240.149` (o la IP configurada del lector) |
+| Usuario    | `admin`                                                    |
+| Contraseña | `Tango3915@`                                               |
+
 
 El navegador puede mostrar advertencia de certificado autofirmado: continúe de forma segura (Advanced → Proceed).
 
@@ -37,11 +41,13 @@ El navegador puede mostrar advertencia de certificado autofirmado: continúe de 
 
 Usado para **SSH**, **API Local REST** (`/cloud/localRestLogin`) y operaciones que la app Racket Club realiza contra el lector (sync, monitor, start/stop de la User App).
 
-| Campo | Valor |
-|-------|-------|
-| Usuario SSH | `rfidadm` |
-| Contraseña | `Tangodeveloper3915$` |
-| IP por defecto | `169.254.240.149` |
+
+| Campo          | Valor                      |
+| -------------- | -------------------------- |
+| Usuario SSH    | `rfidadm`                  |
+| Contraseña     | `Tango123456789123456789@` |
+| IP por defecto | `169.254.240.149`          |
+
 
 **Nota:** La API REST local del FX9600 acepta login con `rfidadm` (no con `admin`). La app guarda estas credenciales en la base de datos al conectar el lector desde **Configuración → Lector de puerta**.
 
@@ -55,8 +61,11 @@ ssh rfidadm@169.254.240.149
 
 ## Resumen rápido
 
-| Sistema | Usuario | Contraseña | Uso |
-|---------|---------|------------|-----|
-| App Racket Club | `admin` | `Admin3915` | Panel de inventario y portal |
-| FX9600 panel web | `admin` | `Admin1234$` | Consola Zebra (Applications, etc.) |
-| FX9600 SSH / API | `rfidadm` | `Tangodeveloper3915$` | SSH, sync, monitor, control User App |
+
+| Sistema          | Usuario         | Contraseña            | Uso                                  |
+| ---------------- | --------------- | --------------------- | ------------------------------------ |
+| App Racket Club  | `Administrador` | `administrador`       | Panel de inventario y portal         |
+| FX9600 panel web | `admin`         | `Admin1234$`          | Consola Zebra (Applications, etc.)   |
+| FX9600 SSH / API | `rfidadm`       | `Tangodeveloper3915$` | SSH, sync, monitor, control User App |
+
+

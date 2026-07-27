@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' file: data:;"
+    />
+    <title>TANGOID</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background: #0b1220;
+        color: #f8fafc;
+        user-select: none;
+        -webkit-app-region: drag;
+      }
+      .shell {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+        padding: 36px 40px;
+        background:
+          radial-gradient(ellipse 80% 60% at 50% 0%, rgba(30, 64, 175, 0.4), transparent 70%),
+          radial-gradient(ellipse 70% 50% at 80% 100%, rgba(13, 148, 136, 0.2), transparent 65%),
+          linear-gradient(160deg, #0b1220 0%, #0f172a 55%, #0b1220 100%);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+      }
+      .logo-wrap {
+        width: 96px;
+        height: 96px;
+        border-radius: 20px;
+        background: transparent;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        box-shadow: none;
+      }
+      .logo-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.35));
+      }
+      .brand-mark {
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: 0.32em;
+        margin-left: 0.32em;
+        line-height: 1;
+        color: #f1f5f9;
+      }
+      .brand-sub {
+        margin-top: -6px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #94a3b8;
+      }
+      .divider {
+        width: 64px;
+        height: 2px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #1e40af, #0d9488);
+      }
+      .product {
+        text-align: center;
+      }
+      .product h1 {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #f1f5f9;
+      }
+      .product p {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #94a3b8;
+        max-width: 280px;
+        line-height: 1.35;
+      }
+      .loader {
+        width: 150px;
+        height: 3px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.2);
+        overflow: hidden;
+      }
+      .loader > span {
+        display: block;
+        height: 100%;
+        width: 40%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #2563eb, #14b8a6);
+        animation: slide 1.25s ease-in-out infinite;
+      }
+      .status {
+        font-size: 11px;
+        color: #64748b;
+        letter-spacing: 0.04em;
+      }
+      @keyframes slide {
+        0% {
+          transform: translateX(-120%);
+        }
+        100% {
+          transform: translateX(320%);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="logo-wrap">
+        <img src="./assets/icon.ico" alt="RFID TRACER" width="96" height="96" />
+      </div>
+      <div class="brand-mark">TANGOID</div>
+      <div class="brand-sub">Soluciones RFID</div>
+      <div class="divider"></div>
+      <div class="product">
+        <h1>RFID TRACER</h1>
+        <p>Trazabilidad y gestión de activos con RFID</p>
+      </div>
+      <div class="loader" aria-hidden="true"><span></span></div>
+      <p class="status">Iniciando aplicación…</p>
+    </div>
+  </body>
+</html>

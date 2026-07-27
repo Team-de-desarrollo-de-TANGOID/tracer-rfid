@@ -13,12 +13,13 @@ import usuariosRoutes from './routes/usuarios.js';
 import rolesRoutes from './routes/roles.js';
 import preferenciasRoutes from './routes/preferencias.js';
 import propiedadesActivosRoutes from './routes/propiedadesActivos.js';
-import mockRoutes from './routes/mock.js';
 import syncRoutes from './routes/sync.js';
 import dashboardRoutes from './routes/dashboard.js';
 import portalRoutes from './routes/portal.js';
+import r3Routes from './routes/r3.js';
 import { autoConnectReaderOnStartup } from './services/fx9600Service.js';
 import { startPortalTagEventsPoller } from './services/portalIngestService.js';
+import { stopBridge as stopR3Bridge } from './services/r3Service.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.API_PORT) || 3847;
@@ -49,13 +50,26 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/preferencias', preferenciasRoutes);
 app.use('/api/propiedades-activo', propiedadesActivosRoutes);
-app.use('/api/mock', mockRoutes);
+app.use('/api/r3', r3Routes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/portal', portalRoutes);
 app.use('/api/sync', syncRoutes);
 app.get('/api/config', (_req, res) => {
   const rows = getDb().prepare('SELECT key, value FROM config').all();
-  res.json(Object.fromEntries(rows.map((r) => [r.key, r.value])));
+  const SECRET_KEYS = new Set([
+    'fx9600_password',
+    'fx9600_ssh_password',
+    'fx9600_app_token',
+  ]);
+  const out = {};
+  for (const r of rows) {
+    if (SECRET_KEYS.has(r.key)) {
+      out[r.key] = r.value ? '***' : '';
+    } else {
+      out[r.key] = r.value;
+    }
+  }
+  res.json(out);
 });
 
 if (SERVE_UI) {
@@ -102,4 +116,12 @@ process.on('unhandledRejection', (reason) => {
 
 process.on('uncaughtException', (err) => {
   console.error('[Racket Club API] uncaughtException:', err);
+});
+
+process.on('exit', () => stopR3Bridge());
+process.on('SIGINT', () => {
+  stopR3Bridge();
+});
+process.on('SIGTERM', () => {
+  stopR3Bridge();
 });

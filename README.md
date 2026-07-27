@@ -23,8 +23,8 @@ Aplicación híbrida (escritorio Electron + API local) para inventario, trazabil
 |-------|-------|
 | URL (desarrollo) | `http://localhost:5173` |
 | URL (producción) | `http://localhost:3847` |
-| Usuario | `admin` |
-| Contraseña | `Admin3915` |
+| Usuario | `Administrador` |
+| Contraseña | `administrador` |
 
 ### Lector FX9600 (panel Zebra)
 
@@ -177,7 +177,8 @@ Salida en `release/`:
 
 | Artefacto | Descripción |
 |-----------|-------------|
-| `RacketClub-Trazabilidad-demo-portable.exe` | Ejecutable portable |
+| `RFID-TRACER-portable.exe` | Ejecutable portable |
+| `RFID-TRACER-Setup-*.exe` | Instalador NSIS |
 | `win-unpacked/` | Misma app en carpeta |
 | `LEEME.txt` | Instrucciones para el usuario final |
 
@@ -193,7 +194,7 @@ Salida en `release/`:
 | `/api/dashboard` | KPIs y métricas de portal |
 | `POST /api/portal/alert` | Webhook del FX9600 (salida no autorizada) |
 | `/api/propiedades-activo` | Catálogo de propiedades personalizables |
-| `/api/mock/*` | Lectores RFID simulados |
+| `/api/r3/*` | Lector USB Chainway R3 (alta de tags) |
 | `/api/sync` | Sincronización con puerta (demo) |
 
 ## Fase final (hardware)

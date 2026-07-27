@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+//����JAVA�ļ�ʱ����UTF-8
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+jar {
+    archiveFileName = 'UHFUsbDemo.jar'
+    manifest {
+        attributes 'Main-Class': 'com.uhf.UHFMainForm'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+dependencies {
+    implementation files('libs/ReaderAPI20250926.jar')
+    implementation files('libs/json-lib-2.4-jdk15.jar')
+    implementation files('libs/jna-5.4.0.jar')
+    implementation files('libs/jna-platform-5.4.0.jar')
+}

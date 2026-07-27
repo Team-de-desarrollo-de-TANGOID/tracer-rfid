@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { login, revokeSession, authMiddleware } from '../middleware/auth.js';
 import { getDb } from '../db.js';
+import { clearMonitorSession } from '../services/monitorSession.js';
 
 const router = Router();
 
@@ -15,6 +16,7 @@ router.post('/login', (req, res) => {
 });
 
 router.post('/logout', authMiddleware, (req, res) => {
+  clearMonitorSession(req.user.id);
   revokeSession(req.token);
   res.json({ ok: true });
 });

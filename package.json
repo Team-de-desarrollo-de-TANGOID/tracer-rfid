@@ -28,7 +28,7 @@
     "pack:all": "npm run build && electron-builder --win portable dir nsis"
   },
   "build": {
-    "appId": "com.tangoid.racketclub.demo",
+    "appId": "com.tangoid.rfidtracer",
     "productName": "RFID TRACER",
     "copyright": "Copyright © TANGOID SRL",
     "directories": {
@@ -49,6 +49,19 @@
       "node_modules/cpu-features/**/*",
       "node_modules/buildcheck/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "hardware/r3-bridge",
+        "to": "r3-bridge",
+        "filter": [
+          "dist/classes/**/*",
+          "dist/r3-bridge.jar",
+          "dist/r3-bridge-v2.jar",
+          "lib/**/*",
+          "natives/**/*"
+        ]
+      }
+    ],
     "extraFiles": [
       {
         "from": "demo-portable/LEEME.txt",
@@ -56,13 +69,8 @@
       }
     ],
     "win": {
+      "icon": "public/icon.ico",
       "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        },
         {
           "target": "nsis",
           "arch": [
@@ -73,14 +81,26 @@
       "signAndEditExecutable": false
     },
     "portable": {
-      "artifactName": "RacketClub-Trazabilidad-demo-portable.exe"
+      "artifactName": "RFID-TRACER-portable.exe"
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "artifactName": "RacketClub-Trazabilidad-Setup-${version}.exe"
+      "runAfterFinish": true,
+      "shortcutName": "RFID TRACER",
+      "uninstallDisplayName": "RFID TRACER",
+      "installerIcon": "public/icon.ico",
+      "uninstallerIcon": "public/icon.ico",
+      "installerHeaderIcon": "public/icon.ico",
+      "artifactName": "RFID-TRACER-Setup-${version}.exe",
+      "installerLanguages": [
+        "es_ES"
+      ],
+      "language": "3082"
     }
   },
   "dependencies": {

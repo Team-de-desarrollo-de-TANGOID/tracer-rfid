@@ -37,5 +37,5 @@ export const INVENTORY_COLUMNS = [
 ];
 
 export const ADMIN_ROLE_NAME = 'Administrador';
-export const ADMIN_USERNAME = 'admin';
-export const ADMIN_DEFAULT_PASSWORD = 'Admin3915';
+export const ADMIN_USERNAME = 'Administrador';
+export const ADMIN_DEFAULT_PASSWORD = 'administrador';

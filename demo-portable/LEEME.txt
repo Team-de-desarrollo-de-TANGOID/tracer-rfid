@@ -1,36 +1,44 @@
-RACKET CLUB — TRAZABILIDAD DE ACTIVOS (DEMO PORTABLE)
-=====================================================
+RFID TRACER — TRAZABILIDAD DE ACTIVOS
+=====================================
 
 Desarrollado e implementado por TANGOID SRL.
 
-SIN INSTALACION
----------------
-No requiere Node.js ni npm en la PC del cliente.
-
-OPCION A — Un solo ejecutable (recomendado para USB)
---------------------------------------------------
-1. Copie el archivo:
-   RacketClub-Trazabilidad-demo-portable.exe
-2. Doble clic para abrir la aplicación.
-3. La primera vez puede tardar unos segundos (Windows SmartScreen:
-   "Más información" → "Ejecutar de todas formas" si aparece).
-
-OPCION B — Carpeta portable (ZIP)
----------------------------------
-1. Descomprima todo el contenido del ZIP en una carpeta (ej. Escritorio).
-2. Ejecute: Racket Club - Trazabilidad de activos.exe
-3. Los datos de demo se guardan en la subcarpeta "data" junto al .exe.
+INSTALACIÓN
+-----------
+1. Ejecute RFID-TRACER-Setup-x.x.x.exe
+2. Siga el asistente (puede elegir la carpeta de instalación).
+3. Abra RFID TRACER desde el acceso directo del escritorio o el menú Inicio.
 
 DATOS
 -----
-La base SQLite queda en la carpeta "data" al lado del ejecutable.
-Puede copiar toda la carpeta a otro PC y conservar los datos.
+La base SQLite se guarda en la carpeta "data" junto al ejecutable.
+Puede respaldar esa carpeta para conservar inventario y configuración.
+
+ACCESO INICIAL
+--------------
+Usuario: Administrador
+Contraseña: administrador
+
+Cambie la contraseña desde Configuración → Usuarios y roles.
+
+LECTOR CHAINWAY R3 (alta de tags)
+---------------------------------
+- Conecte el R3 por USB.
+- Requiere Java 17 o superior instalado en Windows (para el bridge USB).
+- En Agregar activos, la barra lateral derecha muestra el estado del lector
+  y permite ajustar la potencia de las antenas.
+- Al apoyar toallas sobre el lector, los EPC se cargan automáticamente.
+
+LECTOR DE PUERTA FX9600
+-----------------------
+Configure la IP y credenciales en Configuración → Lector de puerta.
 
 REQUISITOS
 ----------
 - Windows 10/11 (64 bits)
-- No requiere internet
+- Java 17+ (solo necesario para el lector USB R3)
+- No requiere internet para el uso local
 
 SOPORTE
 -------
-TANGOID SRL — implementación final con lectores RFID al aprobar el proyecto.
+TANGOID SRL

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Trash2, Shield, UserPlus, Save } from 'lucide-react';
+import { Trash2, Shield, UserPlus, Save, KeyRound } from 'lucide-react';
 import { api } from '../api/client';
 import CollapsibleAddForm from './CollapsibleAddForm';
 import type { Permiso, Rol, UsuarioListItem } from '../types';
@@ -24,6 +24,8 @@ export default function UsersRolesView({
   const [editingRol, setEditingRol] = useState<Rol | null>(null);
   const [newUser, setNewUser] = useState({ username: '', password: '', nombre: '', rolId: 0 });
   const [newRol, setNewRol] = useState({ nombre: '', descripcion: '', permisos: [] as string[] });
+  const [passwordEditId, setPasswordEditId] = useState<number | null>(null);
+  const [passwordEditValue, setPasswordEditValue] = useState('');
 
   const flash = (text: string) => {
     setMsg(text);
@@ -55,6 +57,21 @@ export default function UsersRolesView({
       flash('Usuario creado');
       load();
       close();
+    } catch (e) {
+      flash(e instanceof Error ? e.message : 'Error');
+    }
+  };
+
+  const savePassword = async (userId: number) => {
+    if (!passwordEditValue.trim()) {
+      flash('Ingrese la nueva contraseña');
+      return;
+    }
+    try {
+      await api.updateUsuario(userId, { password: passwordEditValue });
+      setPasswordEditId(null);
+      setPasswordEditValue('');
+      flash('Contraseña actualizada');
     } catch (e) {
       flash(e instanceof Error ? e.message : 'Error');
     }
@@ -145,7 +162,14 @@ export default function UsersRolesView({
                 <tbody className="divide-y divide-slate-50">
                   {usuarios.map((u) => (
                     <tr key={u.id}>
-                      <td className="py-2 font-mono font-semibold">{u.username}</td>
+                      <td className="py-2 font-mono font-semibold">
+                        {u.username}
+                        {u.esSistema && (
+                          <span className="ml-2 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded normal-case tracking-normal font-sans">
+                            Sistema
+                          </span>
+                        )}
+                      </td>
                       <td className="py-2">{u.nombre}</td>
                       <td className="py-2">{u.rolNombre}</td>
                       <td className="py-2">
@@ -157,35 +181,92 @@ export default function UsersRolesView({
                       </td>
                       {canManageUsers && (
                         <td className="py-2 text-right">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                await api.updateUsuario(u.id, { activo: !u.activo });
-                                load();
-                              } catch (e) {
-                                flash(e instanceof Error ? e.message : 'Error');
-                              }
-                            }}
-                            className="text-xs text-blue-600 hover:underline cursor-pointer mr-2"
-                          >
-                            {u.activo ? 'Desactivar' : 'Activar'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!confirm(`¿Eliminar usuario ${u.username}?`)) return;
-                              try {
-                                await api.deleteUsuario(u.id);
-                                load();
-                              } catch (e) {
-                                flash(e instanceof Error ? e.message : 'Error');
-                              }
-                            }}
-                            className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="inline-flex flex-col items-end gap-1.5">
+                            {passwordEditId === u.id ? (
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="password"
+                                  value={passwordEditValue}
+                                  onChange={(e) => setPasswordEditValue(e.target.value)}
+                                  placeholder="Nueva contraseña"
+                                  className="py-1 px-2 border border-slate-200 rounded text-xs w-36 bg-white"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') void savePassword(u.id);
+                                    if (e.key === 'Escape') {
+                                      setPasswordEditId(null);
+                                      setPasswordEditValue('');
+                                    }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => void savePassword(u.id)}
+                                  className="text-xs font-semibold text-emerald-700 hover:underline cursor-pointer"
+                                >
+                                  Guardar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPasswordEditId(null);
+                                    setPasswordEditValue('');
+                                  }}
+                                  className="text-xs text-slate-500 hover:underline cursor-pointer"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  title="Cambiar contraseña"
+                                  onClick={() => {
+                                    setPasswordEditId(u.id);
+                                    setPasswordEditValue('');
+                                  }}
+                                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline cursor-pointer"
+                                >
+                                  <KeyRound size={12} />
+                                  Contraseña
+                                </button>
+                                {!u.esSistema && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        try {
+                                          await api.updateUsuario(u.id, { activo: !u.activo });
+                                          load();
+                                        } catch (e) {
+                                          flash(e instanceof Error ? e.message : 'Error');
+                                        }
+                                      }}
+                                      className="text-xs text-blue-600 hover:underline cursor-pointer"
+                                    >
+                                      {u.activo ? 'Desactivar' : 'Activar'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (!confirm(`¿Eliminar usuario ${u.username}?`)) return;
+                                        try {
+                                          await api.deleteUsuario(u.id);
+                                          load();
+                                        } catch (e) {
+                                          flash(e instanceof Error ? e.message : 'Error');
+                                        }
+                                      }}
+                                      className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </td>
                       )}
                     </tr>

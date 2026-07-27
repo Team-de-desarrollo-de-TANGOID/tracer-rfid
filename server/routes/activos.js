@@ -69,6 +69,20 @@ router.get('/', requirePermission('inventario.ver'), (req, res) => {
   res.json(rows.map(mapActivo));
 });
 
+router.get('/historial-cargas', requirePermission('activos.crear'), (_req, res) => {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT id, fecha, usuario_id AS usuarioId, usuario_nombre AS usuarioNombre,
+              cantidad, errores
+       FROM alta_lotes_historial
+       ORDER BY datetime(fecha) DESC, id DESC
+       LIMIT 50`
+    )
+    .all();
+  res.json(rows);
+});
+
 router.get('/stats', requirePermission('inventario.ver'), (_req, res) => {
   const db = getDb();
   const total = db.prepare('SELECT COUNT(*) AS n FROM activos').get().n;
@@ -303,7 +317,7 @@ router.post('/lote', requirePermission('activos.crear'), (req, res) => {
         creados.push(epc);
       } catch (e) {
         if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-          errores.push({ epc, tid: epc, error: 'TID ya registrado' });
+          errores.push({ epc, tid: epc, error: 'Ya está en el sistema' });
         } else {
           throw e;
         }
@@ -314,11 +328,32 @@ router.post('/lote', requirePermission('activos.crear'), (req, res) => {
   runLote();
 
   if (creados.length === 0) {
+    const duplicados = errores.filter((e) => /ya está en el sistema/i.test(e.error));
+    let errorMsg = 'Ningún activo pudo registrarse.';
+    if (duplicados.length === errores.length && errores.length === 1) {
+      errorMsg = `La etiqueta ${errores[0].epc} no pudo registrarse porque ya está en el sistema.`;
+    } else if (duplicados.length === errores.length && errores.length > 1) {
+      errorMsg = `Ninguna etiqueta pudo registrarse: las ${errores.length} ya están en el sistema.`;
+    } else if (duplicados.length > 0) {
+      errorMsg = `Ningún activo pudo registrarse. ${duplicados.length} etiqueta(s) ya estaban en el sistema.`;
+    }
     return res.status(409).json({
-      error: 'Ningún activo pudo registrarse.',
+      error: errorMsg,
+      mensaje: errorMsg,
       creados: [],
       errores,
     });
+  }
+
+  try {
+    const usuarioNombre =
+      req.user?.nombre?.trim() || req.user?.username?.trim() || 'Usuario';
+    db.prepare(
+      `INSERT INTO alta_lotes_historial (fecha, usuario_id, usuario_nombre, cantidad, errores)
+       VALUES (datetime('now','localtime'), ?, ?, ?, ?)`
+    ).run(req.user?.id ?? null, usuarioNombre, creados.length, errores.length);
+  } catch (e) {
+    console.error('[alta_lotes_historial]', e.message);
   }
 
   res.status(201).json({

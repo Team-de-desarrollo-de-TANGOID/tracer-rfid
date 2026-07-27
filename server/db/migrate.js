@@ -20,6 +20,9 @@ import { up as migration016 } from './migrations/016_portal_evento_index.js';
 import { up as migration017 } from './migrations/017_portal_detecciones_fk.js';
 import { up as migration018 } from './migrations/018_portal_detecciones_tz.js';
 import { up as migration019 } from './migrations/019_dashboard_permisos.js';
+import { up as migration020 } from './migrations/020_production_admin_r3.js';
+import { up as migration021 } from './migrations/021_alta_lotes_historial.js';
+import { up as migration022 } from './migrations/022_ultimo_login.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -52,6 +55,9 @@ export function runMigrations(db) {
     { name: '017_portal_detecciones_fk', up: migration017 },
     { name: '018_portal_detecciones_tz', up: migration018 },
     { name: '019_dashboard_permisos', up: migration019 },
+    { name: '020_production_admin_r3', up: migration020 },
+    { name: '021_alta_lotes_historial', up: migration021 },
+    { name: '022_ultimo_login', up: migration022 },
   ];
 
   for (const m of migrations) {

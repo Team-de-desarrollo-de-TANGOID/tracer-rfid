@@ -1,15 +1,18 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 
 let serverProcess = null;
 let serverStartedInProcess = false;
+let splashWindow = null;
+let mainWindow = null;
 // FC_PACKAGED_MODE=1 prueba API+UI en un solo proceso (`npm run test:packaged`)
 const usePackagedLayout = app.isPackaged;
 const isDev =
   !usePackagedLayout && process.env.FC_PACKAGED_MODE !== '1';
 const API_PORT = process.env.API_PORT || '3847';
+const SPLASH_MIN_MS = 2400;
 
 function getDataDir() {
   if (!usePackagedLayout) {
@@ -66,6 +69,10 @@ async function startApiServerInProcess() {
     );
     const asarDist = path.join(process.resourcesPath, 'app.asar', 'dist');
     process.env.RC_DIST_DIR = fs.existsSync(unpackedDist) ? unpackedDist : asarDist;
+    const r3Bridge = path.join(process.resourcesPath, 'r3-bridge');
+    if (fs.existsSync(r3Bridge)) {
+      process.env.RC_R3_BRIDGE_DIR = r3Bridge;
+    }
   }
 
   const serverPath = getServerScript();
@@ -77,7 +84,7 @@ async function startApiServerInProcess() {
   serverStartedInProcess = true;
 }
 
-/** Solo desarrollo: proceso hijo con Node (usa execFile por rutas con espacios en Windows). */
+  /** Solo desarrollo: proceso hijo con Node (usa execFile por rutas con espacios en Windows). */
 function startApiServerChild() {
   const { execFile } = require('child_process');
   const dataDir = getDataDir();
@@ -141,14 +148,74 @@ async function waitForApi(timeoutMs = 30000) {
   );
 }
 
-async function createWindow() {
-  const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 1024,
-    minHeight: 700,
-    title: 'Racket Club - Trazabilidad de activos',
+function createSplashWindow() {
+  const iconPath = path.join(__dirname, 'assets', 'icon.ico');
+  const splash = new BrowserWindow({
+    width: 520,
+    height: 380,
+    resizable: false,
+    maximizable: false,
+    minimizable: false,
+    fullscreenable: false,
+    frame: false,
+    transparent: false,
     show: false,
+    center: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    backgroundColor: '#0b1220',
+    icon: iconPath,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  splash.setMenuBarVisibility(false);
+  splash.loadFile(path.join(__dirname, 'splash.html'));
+  splash.once('ready-to-show', () => splash.show());
+  splashWindow = splash;
+  return splash;
+}
+
+function closeSplash() {
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    splashWindow.close();
+  }
+  splashWindow = null;
+}
+
+function registerWindowControls() {
+  ipcMain.handle('window:minimize', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize();
+  });
+  ipcMain.handle('window:maximize', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return;
+    if (win.isMaximized()) win.unmaximize();
+    else win.maximize();
+  });
+  ipcMain.handle('window:close', (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.close();
+  });
+  ipcMain.handle('window:isMaximized', (event) => {
+    return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false;
+  });
+}
+
+async function createWindow() {
+  const iconPath = path.join(__dirname, 'assets', 'icon.ico');
+  const win = new BrowserWindow({
+    width: 1360,
+    height: 860,
+    minWidth: 1100,
+    minHeight: 720,
+    title: 'RFID TRACER — TANGOID',
+    show: false,
+    frame: false,
+    backgroundColor: '#0f172a',
+    autoHideMenuBar: true,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -156,11 +223,22 @@ async function createWindow() {
     },
   });
 
-  win.once('ready-to-show', () => win.show());
+  mainWindow = win;
+  win.setMenuBarVisibility(false);
+
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:|^mailto:|^tel:/i.test(url)) {
+      void shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
 
   if (isDev) {
     await win.loadURL('http://localhost:5173');
-    win.webContents.openDevTools({ mode: 'detach' });
+    // Solo abrir DevTools si se pide explícitamente (evita spam Autofill.enable en consola).
+    if (process.env.ELECTRON_OPEN_DEVTOOLS === '1') {
+      win.webContents.openDevTools({ mode: 'detach' });
+    }
   } else {
     await win.loadURL(`http://127.0.0.1:${API_PORT}`);
   }
@@ -168,16 +246,54 @@ async function createWindow() {
   win.webContents.on('did-fail-load', (_e, code, desc) => {
     logError(`Error al cargar la UI (${code})`, new Error(desc));
   });
+
+  return win;
+}
+
+async function showMainAfterSplash(win, splashShownAt) {
+  const elapsed = Date.now() - splashShownAt;
+  const waitMore = Math.max(0, SPLASH_MIN_MS - elapsed);
+  if (waitMore > 0) {
+    await new Promise((r) => setTimeout(r, waitMore));
+  }
+
+  await new Promise((resolve) => {
+    if (win.isDestroyed()) {
+      resolve();
+      return;
+    }
+    if (win.webContents.isLoading()) {
+      win.webContents.once('did-finish-load', () => resolve());
+      // safety
+      setTimeout(resolve, 4000);
+    } else {
+      resolve();
+    }
+  });
+
+  if (!win.isDestroyed()) {
+    win.show();
+    win.focus();
+  }
+  closeSplash();
 }
 
 app.whenReady().then(async () => {
   try {
+    if (process.platform === 'win32') {
+      app.setAppUserModelId('com.tangoid.rfidtracer');
+    }
+    registerWindowControls();
+    const splashShownAt = Date.now();
+    createSplashWindow();
+
     if (isDev) {
       if (process.env.ELECTRON_START_SERVER === '1') {
         startApiServerChild();
         await waitForApi();
       }
-      await createWindow();
+      const win = await createWindow();
+      await showMainAfterSplash(win, splashShownAt);
       return;
     }
 
@@ -187,8 +303,10 @@ app.whenReady().then(async () => {
       startApiServerChild();
     }
     await waitForApi();
-    await createWindow();
+    const win = await createWindow();
+    await showMainAfterSplash(win, splashShownAt);
   } catch (err) {
+    closeSplash();
     showFatalError('No se pudo iniciar la aplicación.', err);
     app.quit();
   }

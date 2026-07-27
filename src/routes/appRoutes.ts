@@ -6,6 +6,7 @@ export const APP_PATHS = {
   activosInventario: '/activos/inventario',
   activosAgregar: '/activos/agregar',
   sincronizar: '/sincronizar',
+  ayuda: '/ayuda',
   config: (section: ConfigSection = 'catalogos') => `/configuracion/${section}`,
 } as const;
 
@@ -47,6 +48,7 @@ export function parseAppPath(pathname: string): ParsedAppPath {
 
   if (segments[0] === 'dashboard') return { tab: 'dashboard' };
   if (segments[0] === 'sincronizar') return { tab: 'sincronizar' };
+  if (segments[0] === 'ayuda') return { tab: 'ayuda' };
 
   return { tab: null };
 }
@@ -68,6 +70,8 @@ export function pathForTab(
       return APP_PATHS.sincronizar;
     case 'configuracion':
       return APP_PATHS.config(isConfigSection(sub) ? sub : 'catalogos');
+    case 'ayuda':
+      return APP_PATHS.ayuda;
   }
 }
 
@@ -76,7 +80,7 @@ export function getDefaultAppPath(
   canAccessActivosSection: (section: ActivosSection) => boolean,
   canAccessConfigSection: (section: ConfigSection) => boolean
 ): string {
-  const tabOrder: SidebarTab[] = ['dashboard', 'activos', 'sincronizar', 'configuracion'];
+  const tabOrder: SidebarTab[] = ['dashboard', 'activos', 'sincronizar', 'configuracion', 'ayuda'];
 
   for (const tab of tabOrder) {
     if (!canAccessTab(tab)) continue;
@@ -117,6 +121,8 @@ export function isPathAllowed(
     const section = parsed.configSection ?? 'catalogos';
     return canAccessConfigSection(section);
   }
+
+  if (parsed.tab === 'ayuda') return true;
 
   return true;
 }

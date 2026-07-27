@@ -36,6 +36,7 @@ export function getFx9600Config() {
     user: cfg('fx9600_user', 'FX9600_USER') || 'admin',
     password: cfg('fx9600_password', 'FX9600_PASSWORD') || '',
     sshUser: cfg('fx9600_ssh_user', 'FX9600_SSH_USER') || 'rfidadm',
+    sshPassword: cfg('fx9600_ssh_password', 'FX9600_SSH_PASSWORD') || '',
     appName: cfg('fx9600_app_name', 'FX9600_APP_NAME') || 'racketclub-gate',
     appPort: Number(cfg('fx9600_app_port', 'FX9600_APP_PORT') || '8765'),
     appToken: cfg('fx9600_app_token', 'FX9600_APP_TOKEN') || '',
@@ -89,6 +90,22 @@ export function resolvePortalWebhookUrl(readerIp) {
   if (local) return `http://${local}:${port}`;
 
   return `http://127.0.0.1:${port}`;
+}
+
+/** Normaliza IP o URL a la base que usa el FX (sin /api/portal/alert). */
+export function normalizePortalWebhookUrl(input) {
+  if (input == null) return null;
+  let s = String(input).trim();
+  if (!s) return '';
+  if (!/^https?:\/\//i.test(s)) s = `http://${s}`;
+  const defaultPort = String(Number(process.env.API_PORT) || 3847);
+  try {
+    const u = new URL(s);
+    const port = u.port || defaultPort;
+    return `${u.protocol}//${u.hostname}:${port}`;
+  } catch {
+    return s.replace(/\/+$/, '').replace(/\/api\/portal\/alert$/i, '');
+  }
 }
 
 function buildReaderDiscoveryCandidates() {
@@ -1216,7 +1233,19 @@ export async function fetchMonitorSnapshot(logOffset = 0) {
   };
 }
 
-export function saveFx9600Config({ ip, user, password, appName, gpoPin, appPort, appToken, portalWebhookUrl }) {
+export function saveFx9600Config({
+  ip,
+  user,
+  password,
+  appName,
+  gpoPin,
+  appPort,
+  appToken,
+  portalWebhookUrl,
+  sshUser,
+  sshPassword,
+  clearSshPassword,
+}) {
   const db = getDb();
   const upsert = db.prepare('INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)');
   if (ip != null) upsert.run('fx9600_ip', ip);
@@ -1226,8 +1255,12 @@ export function saveFx9600Config({ ip, user, password, appName, gpoPin, appPort,
   if (gpoPin != null) upsert.run('fx9600_gpo_pin', String(gpoPin));
   if (appPort != null) upsert.run('fx9600_app_port', String(appPort));
   if (appToken != null && appToken !== '') upsert.run('fx9600_app_token', appToken);
-  if (portalWebhookUrl != null && portalWebhookUrl !== '') {
-    upsert.run('portal_webhook_url', String(portalWebhookUrl).replace(/\/+$/, ''));
+  if (portalWebhookUrl != null) {
+    const normalized = normalizePortalWebhookUrl(portalWebhookUrl);
+    if (normalized !== null) upsert.run('portal_webhook_url', normalized);
   }
+  if (sshUser != null) upsert.run('fx9600_ssh_user', sshUser);
+  if (sshPassword != null && sshPassword !== '') upsert.run('fx9600_ssh_password', sshPassword);
+  if (clearSshPassword) upsert.run('fx9600_ssh_password', '');
   cachedToken = null;
 }

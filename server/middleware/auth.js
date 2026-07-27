@@ -45,6 +45,18 @@ export function login(username, password) {
     return null;
   }
 
+  const loginAnterior = user.ultimo_login ?? null;
+  db.prepare(
+    `UPDATE usuarios
+     SET login_anterior = ultimo_login,
+         ultimo_login = datetime('now','localtime')
+     WHERE id = ?`
+  ).run(user.id);
+  user.login_anterior = loginAnterior;
+  user.ultimo_login = db
+    .prepare(`SELECT ultimo_login FROM usuarios WHERE id = ?`)
+    .get(user.id).ultimo_login;
+
   const permisos = db
     .prepare(
       `SELECT p.codigo FROM permisos p
@@ -73,6 +85,8 @@ export function mapUser(row, permisos = []) {
     rolNombre: row.rol_nombre,
     rolEsSistema: Boolean(row.rol_es_sistema),
     permisos,
+    ultimoLogin: row.ultimo_login ?? null,
+    loginAnterior: row.login_anterior ?? null,
   };
 }
 

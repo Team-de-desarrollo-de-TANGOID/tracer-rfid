@@ -19,7 +19,9 @@ import DashboardView from './components/DashboardView';
 import PortalAlertPopup from './components/PortalAlertPopup';
 import SyncView from './components/SyncView';
 import ConfigView from './components/ConfigView';
-import DemoBanner from './components/DemoBanner';
+import HelpView from './components/HelpView';
+import ElectronTitleBar from './components/ElectronTitleBar';
+import StatusBar from './components/StatusBar';
 import type {
   Activo,
   ActivosSection,
@@ -39,6 +41,21 @@ import {
   isPathAllowed,
 } from './routes/appRoutes';
 
+function AppChrome({
+  children,
+  showStatusBar = false,
+}: {
+  children: ReactNode;
+  showStatusBar?: boolean;
+}) {
+  return (
+    <div className="h-screen flex flex-col overflow-hidden bg-slate-100">
+      <ElectronTitleBar />
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">{children}</div>
+      {showStatusBar ? <StatusBar /> : null}
+    </div>
+  );
+}
 function AnimatedPage({ children }: { children: ReactNode }) {
   return (
     <motion.div
@@ -107,12 +124,12 @@ export default function App() {
   const [stats, setStats] = useState({ total: 0, activas: 0, inactivas: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [demoMode, setDemoMode] = useState(false);
 
   const focusActivoId = Number.parseInt(searchParams.get('activo') ?? '', 10) || null;
 
   const canAccessTab = useCallback(
     (t: SidebarTab) => {
+      if (t === 'ayuda') return true;
       const perms = PERMISSION_TAB_MAP[t];
       return perms.some((p) => hasPermission(p));
     },
@@ -200,15 +217,6 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    api.health().then((h) => setDemoMode(h.demo)).catch(() => setDemoMode(true));
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (location.pathname === '/') {
-      navigate(defaultPath, { replace: true });
-      return;
-    }
     if (
       !isPathAllowed(
         location.pathname,
@@ -249,18 +257,25 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-500 text-sm">
-        Cargando…
-      </div>
+      <AppChrome>
+        <div className="flex-1 flex items-center justify-center bg-slate-100 text-slate-500 text-sm">
+          Cargando…
+        </div>
+      </AppChrome>
     );
   }
 
   if (!user) {
-    return <LoginView onLogin={login} />;
+    return (
+      <AppChrome>
+        <LoginView onLogin={login} />
+      </AppChrome>
+    );
   }
 
   return (
-    <div className="flex h-screen bg-slate-100 font-sans text-slate-800 overflow-hidden">
+    <AppChrome showStatusBar>
+    <div className="flex h-full bg-slate-100 font-sans text-slate-800 overflow-hidden">
       <Sidebar
         totalCount={stats.total}
         activeCount={stats.activas}
@@ -269,7 +284,6 @@ export default function App() {
         canAccessTab={canAccessTab}
         canAccessActivosSection={canAccessActivosSection}
         canAccessConfigSection={canAccessConfigSection}
-        demoMode={demoMode}
         canCheckReader={
           hasPermission(P.syncVerHistorial) ||
           hasPermission(P.syncEjecutar) ||
@@ -281,8 +295,7 @@ export default function App() {
         enabled={hasPermission(P.dashboardAlertas, P.dashboardVer)}
       />
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
-        <DemoBanner demo={demoMode} />
+      <main className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
         {error && (
           <div className="mx-4 mt-2 px-4 py-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
             {error} — Verifique que el servidor local esté en ejecución.
@@ -366,7 +379,6 @@ export default function App() {
                         estados={estados}
                         ubicaciones={ubicaciones}
                         columnasConfig={columnasConfig}
-                        demoMode={demoMode}
                         onCreated={refresh}
                         onGoToInventario={goToInventario}
                       />
@@ -414,11 +426,20 @@ export default function App() {
                   )
                 }
               />
+              <Route
+                path="/ayuda"
+                element={
+                  <AnimatedPage>
+                    <HelpView />
+                  </AnimatedPage>
+                }
+              />
               <Route path="*" element={<Navigate to={defaultPath} replace />} />
             </Routes>
           </AnimatePresence>
         )}
       </main>
     </div>
+    </AppChrome>
   );
 }

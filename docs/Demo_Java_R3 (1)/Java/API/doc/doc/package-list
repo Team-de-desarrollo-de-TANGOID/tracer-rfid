@@ -1,0 +1,16 @@
+com.rscja
+com.rscja.deviceapi
+com.rscja.deviceapi.ble
+com.rscja.deviceapi.customized
+com.rscja.deviceapi.entity
+com.rscja.deviceapi.interfaces
+com.rscja.deviceapi.jsonprotoocol
+com.rscja.deviceapi.linux
+com.rscja.deviceapi.linux.serialport
+com.rscja.deviceapi.linux.usb
+com.rscja.deviceapi.observable
+com.rscja.deviceapi.udp
+com.rscja.deviceapi.uhfparse
+com.rscja.deviceapi.windows.serialport
+com.rscja.deviceapi.windows.usb
+com.rscja.utility

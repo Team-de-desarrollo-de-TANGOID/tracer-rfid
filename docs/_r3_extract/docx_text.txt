@@ -1,0 +1,13 @@
+API接口说明
+linux 系统使用USB连接读写器需要用到ReaderAPI.jar、libTagReader.so
+Windows系统使用USB连接读写器需要用到ReaderAPI.jar、UHFAPI.dll 、libusb-1.0.dll
+3.将此API依赖放至libs包中即可调用相关接口函数。
+打开doc包下的index文件，在打开的网页在下方找到 RFIDWithUHFUsb操作类，操作类中包含操作步骤和示例代码，点击查看即可查找有关于接口的相关函数，可逐级查看。
+示例代码说明
+示例代码中存放的是该项目的源码，源码中src/main/java/com.uhf包即是各个功能的相关代码。
+执行程序说明
+1.双击UHFUsbDemo即可打开程序（需要搭配有java本地环境，且JDK版本需要在1.8及以上）。
+2.打开程序后需要通过USB进行连接
+Demo的开发开发环境
+开发工具: IntelliJ IDEA，
+Java JDK版本: 1.8.0_131

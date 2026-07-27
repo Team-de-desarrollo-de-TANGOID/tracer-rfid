@@ -18,7 +18,7 @@ import {
   startGateApp,
 } from '../services/fx9600Service.js';
 import { pipeReaderLogs } from '../services/readerLogStream.js';
-import { setMonitorSession, getMonitorSession, clearMonitorSession } from '../services/monitorSession.js';
+import { setMonitorSession, getMonitorSession, clearMonitorSession, touchMonitorSession } from '../services/monitorSession.js';
 import {
   getReaderSettings,
   applyReaderSettings,
@@ -89,8 +89,8 @@ router.post('/auto-connect', requirePermission('sync.ejecutar'), async (req, res
 });
 
 router.put('/config', requirePermission('sync.ejecutar'), async (req, res) => {
-  const { ip, user, password, appName, gpoPin, appPort, appToken } = req.body ?? {};
-  saveFx9600Config({ ip, user, password, appName, gpoPin, appPort, appToken });
+  const { ip, user, password, appName, gpoPin, appPort, appToken, portalWebhookUrl } = req.body ?? {};
+  saveFx9600Config({ ip, user, password, appName, gpoPin, appPort, appToken, portalWebhookUrl });
   let credentialsPush;
   if (!isDemoMode()) {
     try {
@@ -139,7 +139,7 @@ router.post('/app/stop', requirePermission('sync.control_app', 'sync.ejecutar'),
     const session = getMonitorSession(req.user.id);
     const sshAuth = {
       sshUser: req.body?.sshUser || session?.sshUser || cfg.sshUser,
-      sshPassword: req.body?.sshPassword || session?.sshPassword,
+      sshPassword: req.body?.sshPassword || session?.sshPassword || cfg.sshPassword,
       ip: session?.ip || cfg.ip,
     };
     if (req.body?.adminPassword) {
@@ -161,7 +161,7 @@ router.post('/app/start', requirePermission('sync.control_app', 'sync.ejecutar')
     const session = getMonitorSession(req.user.id);
     const sshAuth = {
       sshUser: req.body?.sshUser || session?.sshUser || cfg.sshUser,
-      sshPassword: req.body?.sshPassword || session?.sshPassword,
+      sshPassword: req.body?.sshPassword || session?.sshPassword || cfg.sshPassword,
       ip: session?.ip || cfg.ip,
     };
     const enableAutostart = Boolean(req.body?.enableAutostart);
@@ -270,12 +270,20 @@ router.post('/monitor/connect', MONITOR_PERMS, async (req, res) => {
       return res.json({ ok: false, demo: true, message: 'Modo demo activo' });
     }
 
-    const { sshUser, sshPassword, adminUser, adminPassword } = req.body ?? {};
-    if (!sshPassword?.trim()) {
+    const { sshUser, sshPassword, adminUser, adminPassword, storeCredentials, ip, appPort } =
+      req.body ?? {};
+    if (ip || appPort != null) {
+      saveFx9600Config({
+        ...(ip ? { ip: String(ip).trim() } : {}),
+        ...(appPort != null && appPort !== '' ? { appPort: Number(appPort) } : {}),
+      });
+    }
+    const cfg = getFx9600Config();
+    const effectiveSshPassword = sshPassword?.trim() || cfg.sshPassword;
+    if (!effectiveSshPassword) {
       return res.status(400).json({ ok: false, error: 'La contraseña SSH es obligatoria.' });
     }
 
-    const cfg = getFx9600Config();
     const effectiveAdminPassword = adminPassword?.trim() || cfg.password;
     if (!effectiveAdminPassword) {
       return res.status(400).json({
@@ -284,28 +292,49 @@ router.post('/monitor/connect', MONITOR_PERMS, async (req, res) => {
       });
     }
 
-    saveFx9600Config({
-      user: adminUser || cfg.user || 'admin',
-      password: effectiveAdminPassword,
-    });
+    const effectiveSshUser = sshUser || cfg.sshUser || 'rfidadm';
+    const effectiveAdminUser = adminUser || cfg.user || 'admin';
+    const effectiveIp = (ip && String(ip).trim()) || cfg.ip;
+
+    if (storeCredentials) {
+      saveFx9600Config({
+        user: effectiveAdminUser,
+        password: effectiveAdminPassword,
+        sshUser: effectiveSshUser,
+        sshPassword: effectiveSshPassword,
+        ...(effectiveIp ? { ip: effectiveIp } : {}),
+        ...(appPort != null && appPort !== '' ? { appPort: Number(appPort) } : {}),
+      });
+    } else {
+      saveFx9600Config({
+        user: effectiveAdminUser,
+        password: effectiveAdminPassword,
+        sshUser: effectiveSshUser,
+        clearSshPassword: true,
+        ...(effectiveIp ? { ip: effectiveIp } : {}),
+        ...(appPort != null && appPort !== '' ? { appPort: Number(appPort) } : {}),
+      });
+    }
 
     const paired = await ensureReaderPaired({
-      user: adminUser || cfg.user,
+      user: effectiveAdminUser,
       password: effectiveAdminPassword,
+      ip: effectiveIp,
+      ...(appPort != null && appPort !== '' ? { appPort: Number(appPort) } : {}),
     });
 
     const deploy = await deployUserAppIfNeeded({
-      sshUser: sshUser || 'rfidadm',
-      sshPassword,
+      sshUser: effectiveSshUser,
+      sshPassword: effectiveSshPassword,
       ip: paired.ip,
     });
 
     await ensureReaderPaired({ ip: paired.ip });
 
     setMonitorSession(req.user.id, {
-      sshUser: sshUser || 'rfidadm',
-      sshPassword,
-      adminUser: adminUser || 'admin',
+      sshUser: effectiveSshUser,
+      sshPassword: effectiveSshPassword,
+      adminUser: effectiveAdminUser,
       ip: paired.ip,
     });
 
@@ -319,11 +348,25 @@ router.post('/monitor/connect', MONITOR_PERMS, async (req, res) => {
       appOk: status.appOk,
       reachable: status.reachable,
       appVersion: status.health?.version ?? deploy.version,
-      message: 'Conectado. El monitor en vivo está listo.',
+      storedCredentials: Boolean(storeCredentials),
+      message: 'Conectado. El monitor en vivo está listo mientras dure su sesión en RFID TRACER.',
     });
   } catch (e) {
     res.status(502).json({ ok: false, error: e.message });
   }
+});
+
+router.get('/monitor/session', MONITOR_PERMS, (req, res) => {
+  const session = getMonitorSession(req.user.id);
+  const cfg = getFx9600Config();
+  if (session) touchMonitorSession(req.user.id);
+  res.json({
+    active: Boolean(session),
+    ip: session?.ip || cfg.ip || null,
+    sshUser: session?.sshUser || cfg.sshUser || 'rfidadm',
+    hasStoredSshPassword: Boolean(cfg.sshPassword),
+    hasStoredAdminPassword: Boolean(cfg.password),
+  });
 });
 
 router.post('/monitor/disconnect', MONITOR_PERMS, (req, res) => {

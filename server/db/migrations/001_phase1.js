@@ -282,33 +282,13 @@ function seedDemoDataIfEmpty(db) {
   );
   for (const s of skus) insertSku.run(s);
 
-  const estadoActiva = db.prepare("SELECT id FROM estados WHERE codigo = 'ACTIVA'").get().id;
-  const estadoBaja = db.prepare("SELECT id FROM estados WHERE codigo = 'BAJA'").get().id;
-  const skuBasica = db.prepare("SELECT id FROM skus WHERE codigo = 'TOALLA-BASICA'").get().id;
-  const skuDeportiva = db.prepare("SELECT id FROM skus WHERE codigo = 'TOALLA-DEPORTIVA'").get().id;
-  const ubAlmacen = db.prepare("SELECT id FROM ubicaciones WHERE nombre = 'Almacén'").get()?.id;
-  const ubVestuario = db.prepare("SELECT id FROM ubicaciones WHERE nombre = 'Vestuario'").get()?.id;
-  const ubCancha = db.prepare("SELECT id FROM ubicaciones WHERE nombre = 'Cancha 1'").get()?.id;
-
-  const demoTags = [
-    { epc: 'E2007823941001', sku_id: skuBasica, estado_id: estadoActiva, ubicacion_id: ubAlmacen, ubicacion: 'Almacén', descripcion: 'Toalla básica #001' },
-    { epc: 'E2007823941002', sku_id: skuBasica, estado_id: estadoActiva, ubicacion_id: ubVestuario, ubicacion: 'Vestuario', descripcion: 'Toalla básica #002' },
-    { epc: 'E2007823941003', sku_id: skuDeportiva, estado_id: estadoActiva, ubicacion_id: ubCancha, ubicacion: 'Cancha 1', descripcion: 'Toalla deportiva #003' },
-    { epc: 'E2007823941004', sku_id: skuDeportiva, estado_id: estadoBaja, ubicacion_id: null, ubicacion: '—', descripcion: 'Toalla dada de baja' },
-  ];
-
-  const insertActivo = db.prepare(`
-    INSERT INTO activos (epc, sku_id, estado_id, ubicacion_id, ubicacion, descripcion, fecha_registro, updated_at)
-    VALUES (@epc, @sku_id, @estado_id, @ubicacion_id, @ubicacion, @descripcion, datetime('now','localtime'), datetime('now','localtime'))
-  `);
-  for (const t of demoTags) insertActivo.run(t);
-
   db.prepare(`
     INSERT OR REPLACE INTO config (key, value) VALUES
-      ('fx9600_ip', '192.168.1.100'),
-      ('fx9600_user', 'admin'),
-      ('demo_mode', 'true'),
+      ('fx9600_ip', '169.254.240.149'),
+      ('fx9600_user', 'rfidadm'),
+      ('demo_mode', 'false'),
       ('ultima_sync', ''),
-      ('app_version', '0.2.0')
+      ('app_version', '0.2.0'),
+      ('r3_power', '{"ant1":15,"ant2":15,"ant3":15,"ant4":15}')
   `).run();
 }

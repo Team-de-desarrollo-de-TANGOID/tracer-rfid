@@ -9,9 +9,15 @@ import {
   ArrowLeft,
   Loader2,
   ShieldCheck,
+  History,
+  Ban,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import { api } from '../api/client';
 import ActivoAltaFields from './ActivoAltaFields';
+import R3ReaderSidebar from './R3ReaderSidebar';
+import { useR3Reader } from '../hooks/useR3Reader';
 import type { ColumnaTabla, Estado, InventarioColumnasConfig, Sku, Ubicacion } from '../types';
 import {
   ALTA_FALLBACK_COLUMNS,
@@ -23,13 +29,22 @@ import {
 } from '../utils/activoAlta';
 import { mergeTids, parseTidsFromText } from '../utils/tidInput';
 import { formatListaValorDisplay } from '../utils/propiedadLista';
+import { formatFecha, formatHora } from '../utils/datetime';
+
+type HistorialCarga = {
+  id: number;
+  fecha: string;
+  usuarioId: number | null;
+  usuarioNombre: string;
+  cantidad: number;
+  errores: number;
+};
 
 interface Props {
   skus: Sku[];
   estados: Estado[];
   ubicaciones: Ubicacion[];
   columnasConfig?: InventarioColumnasConfig | null;
-  demoMode?: boolean;
   onCreated: () => void;
   onGoToInventario: () => void;
 }
@@ -40,7 +55,7 @@ const WIZARD_STEPS = [
   { id: 3, label: 'Confirmar', short: 'Confirmar alta' },
 ] as const;
 
-const PANEL_TRANSITION = { duration: 0.28, ease: [0.4, 0, 0.2, 1] as const };
+const PANEL_TRANSITION = { duration: 0.22, ease: [0.4, 0, 0.2, 1] as const };
 
 function WizardStepper({
   current,
@@ -52,7 +67,7 @@ function WizardStepper({
   onStepClick: (step: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-0 mb-6">
+    <nav className="flex items-center gap-1 sm:gap-2" aria-label="Pasos del alta">
       {WIZARD_STEPS.map((step, i) => {
         const done = step.id < current;
         const active = step.id === current;
@@ -63,25 +78,25 @@ function WizardStepper({
               type="button"
               disabled={!reachable}
               onClick={() => reachable && onStepClick(step.id)}
-              className={`flex flex-col items-center gap-1.5 min-w-0 group ${
-                reachable ? 'cursor-pointer' : 'cursor-default'
-              }`}
+              className={`flex items-center gap-2 min-w-0 rounded-lg px-2 py-1.5 transition-colors ${
+                reachable ? 'cursor-pointer hover:bg-slate-100' : 'cursor-default'
+              } ${active ? 'bg-blue-50' : ''}`}
             >
               <span
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
                   done
-                    ? 'bg-emerald-500 text-white group-hover:ring-4 group-hover:ring-emerald-100'
+                    ? 'bg-emerald-500 text-white'
                     : active
-                      ? 'bg-blue-600 text-white ring-4 ring-blue-100'
+                      ? 'bg-blue-600 text-white'
                       : reachable
-                        ? 'bg-slate-300 text-slate-600 group-hover:bg-slate-400'
-                        : 'bg-slate-200 text-slate-400'
+                        ? 'bg-slate-200 text-slate-600'
+                        : 'bg-slate-100 text-slate-400'
                 }`}
               >
-                {done ? <Check size={15} strokeWidth={3} /> : step.id}
+                {done ? <Check size={13} strokeWidth={3} /> : step.id}
               </span>
               <span
-                className={`text-[10px] font-semibold uppercase tracking-wide truncate max-w-[5rem] text-center ${
+                className={`hidden sm:block text-xs font-semibold truncate ${
                   active ? 'text-blue-700' : done ? 'text-emerald-700' : 'text-slate-400'
                 }`}
               >
@@ -90,7 +105,7 @@ function WizardStepper({
             </button>
             {i < WIZARD_STEPS.length - 1 && (
               <div
-                className={`flex-1 h-0.5 mx-2 mb-5 transition-colors ${
+                className={`flex-1 h-px mx-1 sm:mx-2 transition-colors ${
                   step.id < current ? 'bg-emerald-400' : 'bg-slate-200'
                 }`}
               />
@@ -98,46 +113,118 @@ function WizardStepper({
           </div>
         );
       })}
-    </div>
+    </nav>
   );
 }
 
 function SummaryRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-slate-100 last:border-0">
-      <dt className="text-xs font-semibold text-slate-500 uppercase tracking-wide shrink-0 sm:w-36">
-        {label}
-      </dt>
-      <dd className="text-sm text-slate-800 m-0 min-w-0 flex-1">{value}</dd>
+    <div className="grid grid-cols-1 sm:grid-cols-[9rem_1fr] gap-1 sm:gap-4 py-2.5 border-b border-slate-100 last:border-0">
+      <dt className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{label}</dt>
+      <dd className="text-sm text-slate-800 m-0 min-w-0">{value}</dd>
     </div>
   );
 }
 
-function PanelCard({
-  title,
-  subtitle,
-  children,
-  footer,
-  contentClassName = 'max-w-xl',
+function FeedbackBanner({
+  error,
+  success,
+  loteErrores,
+  onDismiss,
+  onLoadAnother,
+  onGoToInventario,
 }: {
-  title: string;
-  subtitle?: string;
-  children: ReactNode;
-  footer?: ReactNode;
-  contentClassName?: string;
+  error: string | null;
+  success: string | null;
+  loteErrores: { epc: string; error: string }[];
+  onDismiss: () => void;
+  onLoadAnother: () => void;
+  onGoToInventario: () => void;
 }) {
+  if (!error && !success && loteErrores.length === 0) return null;
+
+  const isSuccess = Boolean(success) && !error && loteErrores.length === 0;
+  const isDupOnly =
+    loteErrores.length > 0 &&
+    loteErrores.every((e) => /ya está en el sistema/i.test(e.error));
+
+  const tone = isSuccess
+    ? {
+        wrap: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+        icon: <CheckCircle2 size={18} className="text-emerald-600 shrink-0 mt-0.5" />,
+        title: 'Alta registrada',
+      }
+    : isDupOnly
+      ? {
+          wrap: 'bg-amber-50 border-amber-200 text-amber-950',
+          icon: <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />,
+          title: 'Etiquetas ya registradas',
+        }
+      : {
+          wrap: 'bg-red-50 border-red-200 text-red-900',
+          icon: <AlertCircle size={18} className="text-red-600 shrink-0 mt-0.5" />,
+          title: 'No se pudo completar el alta',
+        };
+
+  const message = success || error;
+
   return (
-    <div className="flex flex-col bg-white border border-[#e2e8f0] rounded-xl shadow-sm">
-      <div className="px-6 py-5 border-b border-slate-100 shrink-0 text-center">
-        <h2 className="text-lg font-bold text-slate-900 m-0">{title}</h2>
-        {subtitle && <p className="text-sm text-slate-500 m-0 mt-1">{subtitle}</p>}
+    <div className={`rounded-xl border px-4 py-3 ${tone.wrap}`}>
+      <div className="flex gap-3 items-start">
+        {tone.icon}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <p className="m-0 text-sm font-semibold">{tone.title}</p>
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="shrink-0 p-0.5 rounded text-current/50 hover:text-current cursor-pointer border-0 bg-transparent"
+              aria-label="Cerrar aviso"
+            >
+              <X size={15} />
+            </button>
+          </div>
+          {message && <p className="m-0 mt-1 text-sm leading-snug opacity-90">{message}</p>}
+
+          {loteErrores.length > 0 && (
+            <div className="mt-2.5 rounded-lg bg-white/70 border border-black/5 overflow-hidden">
+              <p className="m-0 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide opacity-70 border-b border-black/5">
+                {loteErrores.length} etiqueta{loteErrores.length === 1 ? '' : 's'}
+              </p>
+              <ul className="m-0 p-0 list-none max-h-28 overflow-y-auto divide-y divide-black/5">
+                {loteErrores.map((item) => (
+                  <li
+                    key={item.epc}
+                    className="px-3 py-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs"
+                  >
+                    <span className="font-mono break-all">{item.epc}</span>
+                    <span className="opacity-60">— {item.error}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {isSuccess && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onLoadAnother}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer border-0"
+              >
+                Cargar otro lote
+              </button>
+              <button
+                type="button"
+                onClick={onGoToInventario}
+                className="px-3 py-1.5 rounded-lg border border-emerald-300 bg-white/80 text-emerald-800 text-xs font-semibold hover:bg-white cursor-pointer"
+              >
+                Ver inventario
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-      <div className="p-6 flex justify-center overflow-visible">
-        <div className={`w-full ${contentClassName} mx-auto`}>{children}</div>
-      </div>
-      {footer && (
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 shrink-0">{footer}</div>
-      )}
     </div>
   );
 }
@@ -169,6 +256,71 @@ export default function AddAssetView({
   const [loteErrores, setLoteErrores] = useState<{ epc: string; error: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [registradosSesion, setRegistradosSesion] = useState(0);
+  const [historialCargas, setHistorialCargas] = useState<HistorialCarga[]>([]);
+  const [historialLoading, setHistorialLoading] = useState(true);
+  const [power, setPower] = useState(15);
+  const powerTimerRef = useRef<number | null>(null);
+
+  const loadHistorialCargas = useCallback(async () => {
+    try {
+      const rows = await api.getHistorialCargas();
+      setHistorialCargas(rows);
+    } catch {
+      /* silencioso: el historial no bloquea el alta */
+    } finally {
+      setHistorialLoading(false);
+    }
+  }, []);
+
+  const addLoteTids = useCallback((incoming: string[]) => {
+    setTidsLote((prev) => {
+      const { merged, added } = mergeTids(prev, incoming);
+      if (added > 0) {
+        setError(null);
+        setSuccess(null);
+        setLoteErrores([]);
+      }
+      return merged;
+    });
+  }, []);
+
+  const {
+    status: r3Status,
+    busy: r3Busy,
+    lastEpc,
+    lastReadAt,
+    refreshStatus,
+    connect,
+    disconnect,
+    setAntennaPower,
+    forgetTids,
+  } = useR3Reader({
+    active: activeStep === 1 && !submitting,
+    onEpcs: (epcs) => {
+      addLoteTids(epcs);
+      setLoteInput('');
+    },
+  });
+
+  const removeLoteTid = useCallback(
+    (tid: string) => {
+      setTidsLote((prev) => prev.filter((x) => x !== tid));
+      void forgetTids(tid);
+    },
+    [forgetTids]
+  );
+
+  useEffect(() => {
+    if (r3Status.power?.ant1) setPower(r3Status.power.ant1);
+  }, [r3Status.power?.ant1]);
+
+  const handlePowerChange = (value: number) => {
+    setPower(value);
+    if (powerTimerRef.current) window.clearTimeout(powerTimerRef.current);
+    powerTimerRef.current = window.setTimeout(() => {
+      void setAntennaPower(value).catch(() => undefined);
+    }, 450);
+  };
 
   const altaFields = useMemo(
     () => getAltaActivoFields(columnasCatalogo),
@@ -249,6 +401,10 @@ export default function AddAssetView({
   useEffect(() => {
     if (activeStep !== 3) setConfirmChecked(false);
   }, [activeStep]);
+
+  useEffect(() => {
+    void loadHistorialCargas();
+  }, [loadHistorialCargas]);
 
   const handleSkuChange = (id: number) => {
     setSkuId(id);
@@ -335,14 +491,40 @@ export default function AddAssetView({
     setLoteErrores([]);
   };
 
-  const resetWizard = () => {
+  const resetFormData = () => {
+    setTidsLote((prev) => {
+      if (prev.length) void forgetTids(prev);
+      return [];
+    });
     setActiveStep(1);
     setConfirmChecked(false);
-    setTidsLote([]);
     setLoteInput('');
-    clearFeedback();
     resetDatos();
   };
+
+  const resetWizard = () => {
+    resetFormData();
+    clearFeedback();
+  };
+
+  const handleCancelAlta = () => {
+    if (submitting) return;
+    resetWizard();
+    focusTidInput();
+  };
+
+  const canCancelAlta =
+    !submitting &&
+    (activeStep > 1 ||
+      tidsLote.length > 0 ||
+      loteInput.trim().length > 0 ||
+      skuId > 0 ||
+      estadoId > 0 ||
+      ubicacionId > 0 ||
+      Object.values(fieldValues).some((v) => v?.trim()) ||
+      loteErrores.length > 0 ||
+      Boolean(error) ||
+      Boolean(success));
 
   const goToStep = (step: number) => {
     if (step > maxReachableStep) return;
@@ -374,7 +556,7 @@ export default function AddAssetView({
     setActiveStep(3);
   };
 
-  const addLoteTids = (incoming: string[]) => {
+  const addLoteTidsFromInput = (incoming: string[]) => {
     const { merged, added } = mergeTids(tidsLote, incoming);
     setTidsLote(merged);
     if (added > 0) clearFeedback();
@@ -384,7 +566,7 @@ export default function AddAssetView({
   const handleAddLoteInput = () => {
     const parsed = parseTidsFromText(loteInput);
     if (parsed.length === 0) return;
-    addLoteTids(parsed);
+    addLoteTidsFromInput(parsed);
     setLoteInput('');
     focusTidInput();
   };
@@ -407,285 +589,265 @@ export default function AddAssetView({
       });
       const creados = result.creados?.length ?? result.total;
       setRegistradosSesion((n) => n + creados);
-      setSuccess(result.mensaje);
       onCreated();
+      void loadHistorialCargas();
       if (result.errores.length > 0) {
+        setSuccess(null);
+        setError(result.mensaje);
         setLoteErrores(result.errores);
         setTidsLote(result.errores.map((e) => e.epc));
         setActiveStep(1);
         setConfirmChecked(false);
       } else {
-        resetWizard();
+        resetFormData();
+        setLoteErrores([]);
+        setError(null);
+        setSuccess(result.mensaje);
       }
     } catch (err) {
+      const errores =
+        err &&
+        typeof err === 'object' &&
+        'errores' in err &&
+        Array.isArray((err as { errores?: unknown }).errores)
+          ? (err as { errores: { epc: string; error: string }[] }).errores
+          : null;
+      setSuccess(null);
       setError(err instanceof Error ? err.message : 'Error al registrar');
+      if (errores && errores.length > 0) {
+        setLoteErrores(errores);
+        setTidsLote(errores.map((e) => e.epc));
+        setActiveStep(1);
+        setConfirmChecked(false);
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
   const fieldClass =
-    'w-full py-2.5 px-3.5 border border-slate-200 rounded-xl text-sm font-form bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-400 transition-shadow';
+    'w-full py-2.5 px-3.5 border border-slate-200 rounded-lg text-sm font-form bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-400 transition-shadow';
   const labelClass = 'block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5';
 
-  const navFooter = (back?: { label: string; onClick: () => void }, next?: ReactNode) => (
-    <div className="flex flex-wrap gap-3 justify-between items-center">
-      {back ? (
+  const stepMeta = WIZARD_STEPS[activeStep - 1];
+
+  const footerActions = (back?: { label: string; onClick: () => void }, next?: ReactNode) => (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {back ? (
+          <button
+            type="button"
+            onClick={back.onClick}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+          >
+            <ArrowLeft size={15} />
+            {back.label}
+          </button>
+        ) : null}
         <button
           type="button"
-          onClick={back.onClick}
-          className="inline-flex items-center gap-2 px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-white cursor-pointer"
+          disabled={!canCancelAlta}
+          onClick={handleCancelAlta}
+          className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 disabled:opacity-35 disabled:pointer-events-none cursor-pointer"
         >
-          <ArrowLeft size={16} />
-          {back.label}
+          <Ban size={14} />
+          Cancelar
         </button>
-      ) : (
-        <span />
-      )}
+      </div>
       {next}
     </div>
   );
 
-  const buildStepPanel = (step: number) => {
+  const primaryBtn =
+    'inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer disabled:opacity-40 border-0';
+
+  const renderStepBody = (step: number) => {
     switch (step) {
       case 1:
         return (
-          <PanelCard
-            title={WIZARD_STEPS[0].short}
-            subtitle="Agregá una o más etiquetas con los mismos datos de activo"
-            footer={navFooter(
-              undefined,
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <div className="relative flex-1 min-w-0">
+                <Tag
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  ref={tidInputRef}
+                  disabled={submitting}
+                  value={loteInput}
+                  onChange={(e) => setLoteInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddLoteInput();
+                    }
+                  }}
+                  onPaste={(e) => {
+                    const text = e.clipboardData.getData('text');
+                    const parsed = parseTidsFromText(text);
+                    if (parsed.length > 1) {
+                      e.preventDefault();
+                      addLoteTidsFromInput(parsed);
+                      setLoteInput('');
+                    }
+                  }}
+                  placeholder="Escanee con el R3 o escriba el TID…"
+                  className={`${fieldClass} pl-10 font-mono`}
+                />
+              </div>
               <button
                 type="button"
-                disabled={!tagsReady}
-                onClick={confirmTagsStep}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-sm font-semibold cursor-pointer"
+                disabled={submitting || !loteInput.trim()}
+                onClick={handleAddLoteInput}
+                className="shrink-0 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white rounded-lg text-sm font-semibold cursor-pointer border-0"
               >
-                Continuar
-                <ArrowRight size={16} />
+                Agregar
               </button>
-            )}
-          >
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Tag
-                    size={16}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-                  <input
-                    ref={tidInputRef}
-                    disabled={submitting}
-                    value={loteInput}
-                    onChange={(e) => setLoteInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddLoteInput();
-                      }
+            </div>
+
+            {tidsLote.length > 0 ? (
+              <div className="rounded-lg border border-slate-200 overflow-hidden bg-slate-50/40">
+                <div className="flex items-center justify-between gap-3 px-3.5 py-2 bg-white border-b border-slate-100">
+                  <span className="text-xs font-semibold text-slate-600">
+                    {tidsLote.length} etiqueta{tidsLote.length === 1 ? '' : 's'} en el lote
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const all = [...tidsLote];
+                      setTidsLote([]);
+                      void forgetTids(all);
                     }}
-                    onPaste={(e) => {
-                      const text = e.clipboardData.getData('text');
-                      const parsed = parseTidsFromText(text);
-                      if (parsed.length > 1) {
-                        e.preventDefault();
-                        addLoteTids(parsed);
-                        setLoteInput('');
-                      }
-                    }}
-                    placeholder="Ingresá el TID y presioná Agregar…"
-                    className={`${fieldClass} pl-10 font-mono`}
-                  />
+                    className="text-xs text-slate-400 hover:text-red-600 font-medium cursor-pointer bg-transparent border-0"
+                  >
+                    Eliminar todas
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  disabled={submitting || !loteInput.trim()}
-                  onClick={handleAddLoteInput}
-                  className="shrink-0 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white rounded-xl text-sm font-semibold cursor-pointer"
-                >
-                  Agregar
-                </button>
-              </div>
-              {tidsLote.length > 0 ? (
-                <div className="border border-slate-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto divide-y divide-slate-100">
+                <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 bg-white">
                   {tidsLote.map((t, i) => (
                     <div
                       key={t}
-                      className="flex items-center justify-between px-4 py-2 hover:bg-slate-50 group text-sm"
+                      className="flex items-center justify-between gap-2 px-3.5 py-2 hover:bg-slate-50 group text-sm"
                     >
-                      <span className="font-mono text-slate-800 truncate">
-                        <span className="text-slate-400 mr-2">{i + 1}.</span>
+                      <span className="font-mono text-slate-800 truncate min-w-0">
+                        <span className="text-slate-400 mr-2 tabular-nums">{i + 1}.</span>
                         {t}
                       </span>
                       <button
                         type="button"
-                        onClick={() => setTidsLote((prev) => prev.filter((x) => x !== t))}
-                        className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 cursor-pointer"
+                        onClick={() => removeLoteTid(t)}
+                        className="p-1 text-slate-300 hover:text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer bg-transparent border-0 shrink-0"
+                        aria-label="Quitar etiqueta"
                       >
                         <X size={14} />
                       </button>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-xs text-slate-400 text-center m-0 py-6 border border-dashed border-slate-200 rounded-xl">
-                  Todavía no hay etiquetas cargadas
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-4 py-8 text-center">
+                <Tag size={22} className="mx-auto text-slate-300 mb-2" />
+                <p className="text-sm text-slate-500 m-0">Todavía no hay etiquetas en el lote</p>
+                <p className="text-xs text-slate-400 m-0 mt-1">
+                  Conectá el R3 o cargá TIDs manualmente
                 </p>
-              )}
-            </div>
-          </PanelCard>
+              </div>
+            )}
+          </div>
         );
 
       case 2:
+        if (!tagsReady) {
+          return <p className="text-sm text-slate-400 m-0">Completá las etiquetas en el paso anterior.</p>;
+        }
+        if (columnasLoading) {
+          return (
+            <div className="flex items-center justify-center gap-2 text-sm text-slate-500 py-10">
+              <Loader2 size={16} className="animate-spin shrink-0" />
+              Cargando propiedades del activo…
+            </div>
+          );
+        }
         return (
-          <PanelCard
-            contentClassName="max-w-2xl"
-            title={WIZARD_STEPS[1].short}
-            subtitle="Completá SKU, estado, ubicación y demás propiedades del activo"
-            footer={navFooter(
-              { label: 'Etiquetas', onClick: () => setActiveStep(1) },
-              <button
-                type="button"
-                onClick={confirmDatosStep}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold cursor-pointer"
-              >
-                Ir a confirmación
-                <ArrowRight size={16} />
-              </button>
-            )}
-          >
-            {!tagsReady ? (
-              <p className="text-sm text-slate-400 m-0 text-center">
-                Completá las etiquetas en el paso anterior.
-              </p>
-            ) : columnasLoading ? (
-              <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
-                <Loader2 size={16} className="animate-spin shrink-0" />
-                Cargando propiedades del activo…
-              </div>
-            ) : (
-              <ActivoAltaFields
-                fields={altaFields}
-                skuId={skuId}
-                estadoId={estadoId}
-                ubicacionId={ubicacionId}
-                fieldValues={fieldValues}
-                skus={skus}
-                estados={estados}
-                ubicaciones={ubicaciones}
-                disabled={submitting}
-                onSkuId={handleSkuChange}
-                onEstadoId={setEstadoId}
-                onUbicacionId={setUbicacionId}
-                onFieldValue={(codigo, value) =>
-                  setFieldValues((prev) => ({ ...prev, [codigo]: value }))
-                }
-                fieldClass={fieldClass}
-                labelClass={labelClass}
-              />
-            )}
-          </PanelCard>
+          <ActivoAltaFields
+            fields={altaFields}
+            skuId={skuId}
+            estadoId={estadoId}
+            ubicacionId={ubicacionId}
+            fieldValues={fieldValues}
+            skus={skus}
+            estados={estados}
+            ubicaciones={ubicaciones}
+            disabled={submitting}
+            onSkuId={handleSkuChange}
+            onEstadoId={setEstadoId}
+            onUbicacionId={setUbicacionId}
+            onFieldValue={(codigo, value) =>
+              setFieldValues((prev) => ({ ...prev, [codigo]: value }))
+            }
+            fieldClass={fieldClass}
+            labelClass={labelClass}
+          />
         );
 
       case 3:
         return (
-          <PanelCard
-            contentClassName="max-w-2xl"
-            title={WIZARD_STEPS[2].short}
-            subtitle="Revisá todos los datos antes de registrar en el inventario"
-            footer={navFooter(
-              { label: 'Datos del activo', onClick: () => setActiveStep(2) },
-              <button
-                type="button"
-                disabled={!canSubmit}
-                onClick={() => void handleSubmit()}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-xl text-sm font-bold cursor-pointer shadow-sm"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Registrando…
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck size={16} />
-                    Confirmar alta
-                  </>
-                )}
-              </button>
-            )}
-          >
-            <div className="space-y-6">
-              <section className="rounded-xl border border-slate-200 overflow-hidden">
-                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide m-0">
-                    Etiquetas RFID
-                  </h3>
-                </div>
-                <dl className="px-4 m-0">
-                  <SummaryRow
-                    label="Cantidad"
-                    value={`${tidsLote.length} etiqueta${tidsLote.length === 1 ? '' : 's'}`}
-                  />
-                  <SummaryRow
-                    label="Listado"
-                    value={
-                      <ul className="m-0 p-0 list-none space-y-1 max-h-36 overflow-y-auto">
-                        {tidsLote.map((t, i) => (
-                          <li key={t} className="font-mono text-xs text-slate-700 flex gap-2">
-                            <span className="text-slate-400 shrink-0">{i + 1}.</span>
-                            <span className="break-all">{t}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    }
-                  />
-                </dl>
-              </section>
-
-              <section className="rounded-xl border border-slate-200 overflow-hidden">
-                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide m-0">
-                    Propiedades del activo
-                  </h3>
-                </div>
-                <dl className="px-4 m-0">
-                  {altaFields.length === 0 ? (
-                    <SummaryRow label="Propiedades" value="Valores por defecto del sistema" />
-                  ) : (
-                    altaFields.map((col) => (
-                      <SummaryRow
-                        key={col.codigo}
-                        label={col.etiqueta}
-                        value={getFieldDisplayValue(col)}
-                      />
-                    ))
-                  )}
-                </dl>
-              </section>
-
-              <label className="flex items-start gap-3 p-4 rounded-xl border-2 border-slate-200 bg-slate-50/80 cursor-pointer has-checked:border-emerald-300 has-checked:bg-emerald-50/50">
-                <input
-                  type="checkbox"
-                  checked={confirmChecked}
-                  onChange={(e) => setConfirmChecked(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                />
-                <span className="text-sm text-slate-700">
-                  <strong className="text-slate-900">Confirmo el alta.</strong> Revisé los datos y
-                  autorizo el registro de {tidsLote.length} activo
-                  {tidsLote.length === 1 ? '' : 's'} en el inventario.
+          <div className="space-y-4">
+            <section className="rounded-lg border border-slate-200 overflow-hidden">
+              <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
+                <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wide m-0">
+                  Etiquetas RFID
+                </h3>
+                <span className="text-xs font-semibold text-slate-700 tabular-nums">
+                  {tidsLote.length}
                 </span>
-              </label>
+              </div>
+              <ul className="m-0 p-0 list-none max-h-40 overflow-y-auto divide-y divide-slate-100">
+                {tidsLote.map((t, i) => (
+                  <li key={t} className="px-3.5 py-2 font-mono text-xs text-slate-700 flex gap-2">
+                    <span className="text-slate-400 shrink-0 tabular-nums">{i + 1}.</span>
+                    <span className="break-all">{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
-              {!confirmChecked && (
-                <p className="text-xs text-slate-500 m-0 flex items-center justify-center gap-1.5">
-                  <AlertCircle size={13} />
-                  Marcá la casilla de confirmación para habilitar el registro.
-                </p>
-              )}
-            </div>
-          </PanelCard>
+            <section className="rounded-lg border border-slate-200 overflow-hidden">
+              <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-100">
+                <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wide m-0">
+                  Propiedades del activo
+                </h3>
+              </div>
+              <dl className="px-3.5 m-0">
+                {altaFields.length === 0 ? (
+                  <SummaryRow label="Propiedades" value="Valores por defecto del sistema" />
+                ) : (
+                  altaFields.map((col) => (
+                    <SummaryRow
+                      key={col.codigo}
+                      label={col.etiqueta}
+                      value={getFieldDisplayValue(col)}
+                    />
+                  ))
+                )}
+              </dl>
+            </section>
+
+            <label className="flex items-start gap-3 p-3.5 rounded-lg border border-slate-200 bg-slate-50/80 cursor-pointer has-checked:border-emerald-400 has-checked:bg-emerald-50/60">
+              <input
+                type="checkbox"
+                checked={confirmChecked}
+                onChange={(e) => setConfirmChecked(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+              />
+              <span className="text-sm text-slate-700 leading-snug">
+                <strong className="text-slate-900">Confirmo el alta.</strong> Autorizo el registro
+                de {tidsLote.length} activo{tidsLote.length === 1 ? '' : 's'} en el inventario.
+              </span>
+            </label>
+          </div>
         );
 
       default:
@@ -693,96 +855,205 @@ export default function AddAssetView({
     }
   };
 
+  const renderStepFooter = (step: number) => {
+    switch (step) {
+      case 1:
+        return footerActions(
+          undefined,
+          <button
+            type="button"
+            disabled={!tagsReady}
+            onClick={confirmTagsStep}
+            className={`${primaryBtn} bg-blue-600 hover:bg-blue-700 text-white`}
+          >
+            Continuar
+            <ArrowRight size={15} />
+          </button>
+        );
+      case 2:
+        return footerActions(
+          { label: 'Etiquetas', onClick: () => setActiveStep(1) },
+          <button
+            type="button"
+            onClick={confirmDatosStep}
+            className={`${primaryBtn} bg-blue-600 hover:bg-blue-700 text-white`}
+          >
+            Ir a confirmación
+            <ArrowRight size={15} />
+          </button>
+        );
+      case 3:
+        return footerActions(
+          { label: 'Datos', onClick: () => setActiveStep(2) },
+          <button
+            type="button"
+            disabled={!canSubmit}
+            onClick={() => void handleSubmit()}
+            className={`${primaryBtn} bg-emerald-600 hover:bg-emerald-700 text-white`}
+          >
+            {submitting ? (
+              <>
+                <Loader2 size={15} className="animate-spin" />
+                Registrando…
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={15} />
+                Confirmar alta
+              </>
+            )}
+          </button>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#f8fafc]">
-      <header className="px-8 py-5 bg-white border-b border-[#e2e8f0] shrink-0">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#0f172a] m-0">Agregar activos</h1>
-            <p className="text-[13px] text-[#64748b] mt-1 m-0">
-              Completá el asistente paso a paso. Revisá todo antes de confirmar el alta.
+    <div className="h-full overflow-y-auto bg-[#f1f5f9]">
+      <div className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto px-5 md:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold text-slate-900 m-0 tracking-tight">Agregar activos</h1>
+            <p className="text-xs text-slate-500 m-0 mt-0.5">
+              Alta por lote · paso {activeStep} de {WIZARD_STEPS.length}
             </p>
           </div>
-          {registradosSesion > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
-              <Check size={13} />
-              {registradosSesion} en esta sesión
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {registradosSesion > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
+                <Check size={12} />
+                {registradosSesion} en esta sesión
+              </span>
+            )}
+            {canCancelAlta && (
+              <button
+                type="button"
+                onClick={handleCancelAlta}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+              >
+                <Ban size={12} />
+                Cancelar alta
+              </button>
+            )}
+          </div>
         </div>
-      </header>
-
-      <div className="flex-1 min-h-0 flex flex-col p-6 md:p-8 overflow-hidden">
-        <div className="max-w-4xl w-full mx-auto flex flex-col flex-1 min-h-0">
+        <div className="max-w-6xl mx-auto px-5 md:px-8 pb-3">
           <WizardStepper
             current={activeStep}
             maxReachable={maxReachableStep}
             onStepClick={goToStep}
           />
+        </div>
+      </div>
 
-          {(error || success || loteErrores.length > 0) && (
-            <div className="space-y-2 mb-4 shrink-0">
-              {error && (
-                <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm flex gap-3 items-start">
-                  <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
-                  <p className="m-0">{error}</p>
-                </div>
-              )}
-              {success && (
-                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-800 text-sm flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex gap-3 items-center">
-                    <Check size={18} className="shrink-0" />
-                    <p className="m-0 font-medium">{success}</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={resetWizard}
-                      className="text-xs font-semibold text-emerald-700 hover:underline cursor-pointer"
-                    >
-                      Cargar otro
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onGoToInventario}
-                      className="text-xs font-semibold text-emerald-700 hover:underline cursor-pointer"
-                    >
-                      Ver inventario
-                    </button>
-                  </div>
-                </div>
-              )}
-              {loteErrores.length > 0 && (
-                <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-amber-900 text-sm">
-                  <p className="font-semibold m-0 mb-2">
-                    {loteErrores.length} etiqueta{loteErrores.length === 1 ? '' : 's'} con error:
-                  </p>
-                  <ul className="m-0 pl-4 space-y-1 list-disc font-mono text-xs">
-                    {loteErrores.map((item) => (
-                      <li key={item.epc}>
-                        {item.epc} — {item.error}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
+      <div className="max-w-6xl mx-auto px-5 md:px-8 py-5 md:py-6 space-y-5">
+        <FeedbackBanner
+          error={error}
+          success={success}
+          loteErrores={loteErrores}
+          onDismiss={clearFeedback}
+          onLoadAnother={() => {
+            clearFeedback();
+            focusTidInput();
+          }}
+          onGoToInventario={onGoToInventario}
+        />
 
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={activeStep}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={PANEL_TRANSITION}
-              >
-                {buildStepPanel(activeStep)}
-              </motion.div>
-            </AnimatePresence>
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
+          <div className="flex-1 min-w-0 w-full">
+            <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-100">
+                <h2 className="text-base font-bold text-slate-900 m-0">{stepMeta.short}</h2>
+                <p className="text-sm text-slate-500 m-0 mt-0.5">
+                  {activeStep === 1 &&
+                    'Agregá una o más etiquetas que compartirán los mismos datos de activo.'}
+                  {activeStep === 2 &&
+                    'Completá SKU, estado, ubicación y las propiedades requeridas.'}
+                  {activeStep === 3 && 'Revisá el resumen y confirmá el registro en inventario.'}
+                </p>
+              </div>
+
+              <div className="px-5 py-5">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={activeStep}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={PANEL_TRANSITION}
+                  >
+                    {renderStepBody(activeStep)}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50/80">
+                {renderStepFooter(activeStep)}
+              </div>
+            </section>
+          </div>
+
+          <div className="w-full lg:w-72 shrink-0 lg:sticky lg:top-[7.5rem]">
+            <R3ReaderSidebar
+              status={r3Status}
+              busy={r3Busy}
+              lastEpc={lastEpc}
+              lastReadAt={lastReadAt}
+              power={power}
+              onPowerChange={handlePowerChange}
+              onConnect={() => void connect().catch(() => undefined)}
+              onDisconnect={() => void disconnect()}
+              onRefresh={() => void refreshStatus()}
+            />
           </div>
         </div>
+
+        <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+            <History size={15} className="text-slate-500" />
+            <h2 className="text-sm font-bold text-slate-900 m-0">Historial de cargas</h2>
+          </div>
+          {historialLoading ? (
+            <p className="px-5 py-5 text-sm text-slate-400 m-0 flex items-center gap-2">
+              <Loader2 size={14} className="animate-spin" />
+              Cargando historial…
+            </p>
+          ) : historialCargas.length === 0 ? (
+            <p className="px-5 py-5 text-sm text-slate-400 m-0">
+              Todavía no hay altas por lote registradas.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide bg-slate-50">
+                    <th className="px-5 py-2.5 font-bold">Fecha</th>
+                    <th className="px-5 py-2.5 font-bold">Hora</th>
+                    <th className="px-5 py-2.5 font-bold">Usuario</th>
+                    <th className="px-5 py-2.5 font-bold text-right">Tags</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historialCargas.map((row) => (
+                    <tr key={row.id} className="border-t border-slate-100 hover:bg-slate-50/70">
+                      <td className="px-5 py-2.5 text-slate-700 whitespace-nowrap">
+                        {formatFecha(row.fecha)}
+                      </td>
+                      <td className="px-5 py-2.5 text-slate-700 font-mono text-xs whitespace-nowrap">
+                        {formatHora(row.fecha)}
+                      </td>
+                      <td className="px-5 py-2.5 text-slate-800">{row.usuarioNombre}</td>
+                      <td className="px-5 py-2.5 text-right font-semibold text-slate-900 tabular-nums">
+                        {row.cantidad}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
